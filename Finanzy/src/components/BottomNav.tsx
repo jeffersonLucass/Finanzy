@@ -3,7 +3,7 @@ import { router } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 type BottomNavProps = {
-  active: 'home' | 'transactions' | 'reports' | 'new';
+  active: 'home' | 'transactions' | 'reports' | 'more' | 'new';
 };
 
 export function BottomNav({ active }: BottomNavProps) {
@@ -11,7 +11,7 @@ export function BottomNav({ active }: BottomNavProps) {
     { key: 'home' as const, label: 'Início', icon: '⌂', route: '/home' },
     { key: 'transactions' as const, label: 'Transações', icon: '≡', route: '/transactions' },
     { key: 'reports' as const, label: 'Relatórios', icon: '◔', route: '/reports' },
-    { key: 'more' as const, label: 'Mais', icon: '•••', route: '/home' },
+    { key: 'more' as const, label: 'Mais', icon: '•••', route: '/more' },
   ];
 
   return (
