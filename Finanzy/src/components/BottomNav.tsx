@@ -1,15 +1,16 @@
+
 import { router } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 type BottomNavProps = {
-  active: 'home' | 'transactions' | 'new';
+  active: 'home' | 'transactions' | 'reports' | 'new';
 };
 
 export function BottomNav({ active }: BottomNavProps) {
   const items = [
     { key: 'home' as const, label: 'Início', icon: '⌂', route: '/home' },
     { key: 'transactions' as const, label: 'Transações', icon: '≡', route: '/transactions' },
-    { key: 'reports' as const, label: 'Relatórios', icon: '◔', route: '/home' },
+    { key: 'reports' as const, label: 'Relatórios', icon: '◔', route: '/reports' },
     { key: 'more' as const, label: 'Mais', icon: '•••', route: '/home' },
   ];
 
@@ -29,8 +30,8 @@ export function BottomNav({ active }: BottomNavProps) {
       </Pressable>
       {items.slice(2).map((item) => (
         <Pressable key={item.key} onPress={() => router.replace(item.route)} style={styles.item}>
-          <Text style={styles.icon}>{item.icon}</Text>
-          <Text style={styles.label}>{item.label}</Text>
+          <Text style={[styles.icon, item.key === active && styles.active]}>{item.icon}</Text>
+          <Text style={[styles.label, item.key === active && styles.active]}>{item.label}</Text>
         </Pressable>
       ))}
     </View>
