@@ -4,6 +4,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { BottomNav } from '../components/BottomNav';
 import { clearLocalData, getProfileName, getTransactions, Transaction } from '../database';
+import { toBrazilianDate } from '../date';
 
 const currency = (value: number) =>
   value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -81,7 +82,9 @@ export default function HomeScreen() {
               <View style={styles.icon}><Text>{item.category === 'Salário' ? '💰' : item.category === 'Transporte' ? '🚕' : item.category === 'Alimentação' ? '🍔' : '🎮'}</Text></View>
               <View style={styles.transactionInfo}>
                 <Text style={styles.transactionName}>{item.description}</Text>
-                <Text style={styles.transactionCategory}>{item.category}</Text>
+                <Text style={styles.transactionCategory}>
+                  {item.category} · {toBrazilianDate(item.date)}
+                </Text>
               </View>
               <Text style={[styles.amount, item.type === 'income' ? styles.income : styles.expense]}>
                 {item.type === 'income' ? '+ ' : '- '}{currency(item.amount)}

@@ -4,6 +4,7 @@ import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { BottomNav } from '../components/BottomNav';
 import { getTransactions, Transaction } from '../database';
+import { toBrazilianDate } from '../date';
 
 const currency = (value: number) =>
   value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -73,7 +74,9 @@ export default function TransactionsScreen() {
               </View>
               <View style={styles.info}>
                 <Text style={styles.name}>{item.description}</Text>
-                <Text style={styles.category}>{item.category}</Text>
+                <Text style={styles.category}>
+                  {item.category} · {toBrazilianDate(item.date)}
+                </Text>
               </View>
               <Text style={[styles.amount, item.type === 'income' ? styles.income : styles.expense]}>
                 {item.type === 'income' ? '+ ' : '- '}{currency(item.amount)}

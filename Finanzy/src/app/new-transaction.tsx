@@ -4,6 +4,12 @@ import { Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { BottomNav } from '../components/BottomNav';
 import { addTransaction, TransactionType } from '../database';
+import {
+  formatBrazilianDateInput,
+  isValidBrazilianDate,
+  toBrazilianDate,
+  toDatabaseDate,
+} from '../date';
 
 const expenseCategories = [
   'Alimentação',
@@ -34,17 +40,6 @@ function todayLocal() {
   return `${year}-${month}-${day}`;
 }
 
-function isValidDate(value: string) {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
-  const [year, month, day] = value.split('-').map(Number);
-  const date = new Date(year, month - 1, day);
-  return (
-    date.getFullYear() === year &&
-    date.getMonth() === month - 1 &&
-    date.getDate() === day
-  );
-}
-
 export default function NewTransactionScreen() {
   const [type, setType] = useState<TransactionType>('expense');
   const [description, setDescription] = useState('');
@@ -52,7 +47,7 @@ export default function NewTransactionScreen() {
   const [amount, setAmount] = useState('');
   const [observation, setObservation] = useState('');
   const [favorite, setFavorite] = useState(false);
-  const [date, setDate] = useState(todayLocal());
+  const [date, setDate] = useState(() => toBrazilianDate(todayLocal()));
   const [error, setError] = useState('');
 
   async function save() {
@@ -65,8 +60,8 @@ export default function NewTransactionScreen() {
       setError('Informe um valor maior que zero.');
       return;
     }
-    if (!isValidDate(date)) {
-      setError('Informe uma data válida no formato AAAA-MM-DD.');
+    if (!isValidBrazilianDate(date)) {
+      setError('Informe uma data válida no formato DD/MM/AAAA.');
       return;
     }
 
@@ -76,7 +71,7 @@ export default function NewTransactionScreen() {
       category,
       type,
       amount: parsedAmount,
-      date,
+      date: toDatabaseDate(date),
       observation: observation.trim() || null,
       favorite: favorite ? 1 : 0,
     });
@@ -89,7 +84,7 @@ export default function NewTransactionScreen() {
     description.trim().length > 0 &&
     Number.isFinite(parsedAmount) &&
     parsedAmount > 0 &&
-    isValidDate(date);
+    isValidBrazilianDate(date);
 
   function changeType(nextType: TransactionType) {
     setType(nextType);
@@ -150,8 +145,10 @@ export default function NewTransactionScreen() {
             <Text style={styles.fieldLabel}>Data</Text>
             <TextInput
               autoCapitalize="none"
-              onChangeText={(value) => { setDate(value); setError(''); }}
-              placeholder="AAAA-MM-DD"
+              keyboardType="number-pad"
+              maxLength={10}
+              onChangeText={(value) => { setDate(formatBrazilianDateInput(value)); setError(''); }}
+              placeholder="DD/MM/AAAA"
               placeholderTextColor="#94A3B8"
               style={styles.fieldInput}
               value={date}

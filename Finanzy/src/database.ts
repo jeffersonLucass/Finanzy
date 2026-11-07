@@ -13,6 +13,21 @@ export type Transaction = {
   favorite: number;
 };
 
+export type Budget = {
+  id: number;
+  category: string;
+  monthlyLimit: number;
+};
+
+export type Goal = {
+  id: number;
+  name: string;
+  targetAmount: number;
+  savedAmount: number;
+  deadline: string | null;
+  icon: string | null;
+};
+
 let databasePromise: Promise<SQLite.SQLiteDatabase> | null = null;
 
 function getDatabase() {
@@ -39,6 +54,19 @@ export async function initializeDatabase() {
       date TEXT NOT NULL,
       observation TEXT,
       favorite INTEGER NOT NULL DEFAULT 0
+    );
+    CREATE TABLE IF NOT EXISTS budgets (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      category TEXT NOT NULL UNIQUE,
+      monthly_limit REAL NOT NULL CHECK (monthly_limit > 0)
+    );
+    CREATE TABLE IF NOT EXISTS goals (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      target_amount REAL NOT NULL CHECK (target_amount > 0),
+      saved_amount REAL NOT NULL DEFAULT 0 CHECK (saved_amount >= 0),
+      deadline TEXT,
+      icon TEXT
     );
   `);
 }
@@ -92,4 +120,105 @@ export async function addTransaction(
     transaction.observation,
     'favorite' in transaction && transaction.favorite ? 1 : 0
   );
+}
+
+export async function getBudgets() {
+  const database = await getDatabase();
+  const rows = await database.getAllAsync<{
+    id: number;
+    category: string;
+    monthly_limit: number;
+  }>('SELECT id, category, monthly_limit FROM budgets ORDER BY category');
+  return rows.map(({ id, category, monthly_limit }) => ({
+    id,
+    category,
+    monthlyLimit: monthly_limit,
+  }));
+}
+
+export async function saveBudget(id: number | null, category: string, monthlyLimit: number) {
+  const database = await getDatabase();
+  if (id === null) {
+    await database.runAsync(
+      `INSERT INTO budgets (category, monthly_limit) VALUES (?, ?)
+       ON CONFLICT(category) DO UPDATE SET monthly_limit = excluded.monthly_limit`,
+      category,
+      monthlyLimit
+    );
+    return;
+  }
+  await database.runAsync(
+    'UPDATE budgets SET category = ?, monthly_limit = ? WHERE id = ?',
+    category,
+    monthlyLimit,
+    id
+  );
+}
+
+export async function deleteBudget(id: number) {
+  const database = await getDatabase();
+  await database.runAsync('DELETE FROM budgets WHERE id = ?', id);
+}
+
+export async function getGoals() {
+  const database = await getDatabase();
+  const rows = await database.getAllAsync<{
+    id: number;
+    name: string;
+    target_amount: number;
+    saved_amount: number;
+    deadline: string | null;
+    icon: string | null;
+  }>(
+    'SELECT id, name, target_amount, saved_amount, deadline, icon FROM goals ORDER BY id DESC'
+  );
+  return rows.map(({ id, name, target_amount, saved_amount, deadline, icon }) => ({
+    id,
+    name,
+    targetAmount: target_amount,
+    savedAmount: saved_amount,
+    deadline,
+    icon,
+  }));
+}
+
+export async function saveGoal(goal: Omit<Goal, 'id'>, id: number | null) {
+  const database = await getDatabase();
+  if (id === null) {
+    await database.runAsync(
+      `INSERT INTO goals (name, target_amount, saved_amount, deadline, icon)
+       VALUES (?, ?, ?, ?, ?)`,
+      goal.name,
+      goal.targetAmount,
+      goal.savedAmount,
+      goal.deadline,
+      goal.icon
+    );
+    return;
+  }
+  await database.runAsync(
+    `UPDATE goals
+     SET name = ?, target_amount = ?, saved_amount = ?, deadline = ?, icon = ?
+     WHERE id = ?`,
+    goal.name,
+    goal.targetAmount,
+    goal.savedAmount,
+    goal.deadline,
+    goal.icon,
+    id
+  );
+}
+
+export async function addToGoal(id: number, amount: number) {
+  const database = await getDatabase();
+  await database.runAsync(
+    'UPDATE goals SET saved_amount = saved_amount + ? WHERE id = ?',
+    amount,
+    id
+  );
+}
+
+export async function deleteGoal(id: number) {
+  const database = await getDatabase();
+  await database.runAsync('DELETE FROM goals WHERE id = ?', id);
 }
