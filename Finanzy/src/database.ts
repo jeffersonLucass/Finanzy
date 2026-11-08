@@ -101,6 +101,10 @@ export async function clearLocalData() {
     DELETE FROM profile;
     DELETE FROM transactions;
     DELETE FROM sqlite_sequence WHERE name = 'transactions';
+    DELETE FROM budgets;
+    DELETE FROM sqlite_sequence WHERE name = 'budgets';
+    DELETE FROM goals;
+    DELETE FROM sqlite_sequence WHERE name = 'goals';
   `);
 }
 
