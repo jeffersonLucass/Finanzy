@@ -23,3 +23,9 @@ export function toDatabaseDate(value: string) {
   const [day, month, year] = value.split('/');
   return `${year}-${month}-${day}`;
 }
+
+export function todayLocal() {
+  const now = new Date();
+  const offset = now.getTimezoneOffset() * 60_000;
+  return new Date(now.getTime() - offset).toISOString().slice(0, 10);
+}
