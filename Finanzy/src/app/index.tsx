@@ -1,21 +1,13 @@
 import { Redirect } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, View } from 'react-native';
-import { getProfileName } from '../database';
+import { useSession } from '../features/session/use-session';
+import { SplashScreen } from '../screens/SplashScreen';
 
 export default function Index() {
-  const [destination, setDestination] = useState<'onboarding' | 'home' | null>(null);
-
-  useEffect(() => {
-    getProfileName().then((name) => setDestination(name ? 'home' : 'onboarding'));
-  }, []);
+  const session = useSession();
+  const destination = session.data?.profile && session.data.isSessionActive ? 'home' : session.data ? 'onboarding' : null;
 
   if (!destination) {
-    return (
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-        <ActivityIndicator color="#10B981" />
-      </View>
-    );
+    return <SplashScreen />;
   }
 
   return <Redirect href={destination === 'home' ? '/home' : '/onboarding'} />;

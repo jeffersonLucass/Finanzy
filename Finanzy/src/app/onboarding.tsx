@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -11,50 +11,63 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { BrandMark } from '../components/BrandMark';
-import { saveProfileName } from '../database';
+import { getRuntime } from '../application/runtime';
+import { useSession } from '../features/session/use-session';
+import { useAsyncAction } from '../hooks/use-async-action';
+import { errorMessage } from '../domain/core';
+import { useTheme } from '../theme/ThemeProvider';
+import { inputLimits, sanitizeInput } from '../presentation/input';
 
 export default function OnboardingScreen() {
-  const [name, setName] = useState('');
+  const { theme } = useTheme();
+  const [name, setName] = useState<string | null>(null);
+  const session = useSession();
+  const displayedName = name ?? session.data?.profile?.name ?? '';
+  const signIn = useCallback((profileName: string) => getRuntime().then(runtime => runtime.session.signIn(profileName)), []);
+  const afterSignIn = useCallback(() => { router.replace('/home'); }, []);
+  const action = useAsyncAction(signIn, afterSignIn);
 
   async function continueToApp() {
-    if (!name.trim()) return;
-    await saveProfileName(name);
-    router.replace('/home');
+    if (!displayedName.trim()) return;
+    try { await action.execute(displayedName); } catch {}
   }
 
   return (
-    <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
+    <SafeAreaView style={[styles.screen, { backgroundColor: theme.colors.canvas }]} edges={['top', 'bottom']}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.content}
       >
         <View style={styles.brand}>
           <BrandMark />
-          <Text style={styles.title}>Bem-vindo ao Finanzy</Text>
-          <Text style={styles.subtitle}>Como podemos chamar você?</Text>
+          <Text style={[styles.title, { color: theme.colors.text }]}>Bem-vindo ao Finanzy</Text>
+          <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>Como podemos chamar você?</Text>
         </View>
 
         <View style={styles.form}>
-          <Text style={styles.label}>Seu nome</Text>
+          <Text style={[styles.label, { color: theme.colors.textSecondary }]}>Seu nome</Text>
           <TextInput
             autoCapitalize="words"
-            onChangeText={setName}
+            maxLength={inputLimits.text}
+            onChangeText={value => setName(sanitizeInput(value))}
             placeholder="Ex: Gustavo"
-            placeholderTextColor="#94A3B8"
-            style={styles.input}
-            value={name}
+            placeholderTextColor={theme.colors.textMuted}
+            style={[styles.input, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border, color: theme.colors.text }]}
+            value={displayedName}
           />
           <Pressable
             accessibilityRole="button"
-            disabled={!name.trim()}
+            disabled={!displayedName.trim() || action.loading}
             onPress={continueToApp}
             style={({ pressed }) => [
               styles.button,
-              (!name.trim() || pressed) && styles.buttonDisabled,
+              { backgroundColor: theme.colors.primary },
+              (!displayedName.trim() || pressed) && styles.buttonDisabled,
             ]}
           >
-            <Text style={styles.buttonText}>Começar</Text>
+            <Text style={[styles.buttonText, { color: theme.colors.onPrimary }]}>Começar</Text>
           </Pressable>
+          {action.error ? <Text style={[styles.error, { color: theme.colors.dangerStrong }]}>{errorMessage(action.error)}</Text> : null}
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -62,30 +75,27 @@ export default function OnboardingScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: '#F7F9FC' },
+  screen: { flex: 1 },
   content: { flex: 1, justifyContent: 'space-between', padding: 24, paddingBottom: 32 },
   brand: { alignItems: 'center', marginTop: 80 },
-  title: { color: '#111827', fontSize: 26, fontWeight: '700', marginTop: 18 },
-  subtitle: { color: '#64748B', fontSize: 16, marginTop: 8 },
+  title: { fontSize: 26, fontWeight: '700', marginTop: 18 },
+  subtitle: { fontSize: 16, marginTop: 8 },
   form: { gap: 10 },
-  label: { color: '#64748B', fontSize: 13 },
+  label: { fontSize: 13 },
   input: {
-    backgroundColor: '#FFFFFF',
-    borderColor: '#E2E8F0',
     borderRadius: 14,
     borderWidth: 1,
-    color: '#111827',
     height: 58,
     paddingHorizontal: 16,
   },
   button: {
     alignItems: 'center',
-    backgroundColor: '#10B981',
     borderRadius: 14,
     height: 58,
     justifyContent: 'center',
     marginTop: 8,
   },
   buttonDisabled: { opacity: 0.55 },
-  buttonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
+  buttonText: { fontSize: 16, fontWeight: '700' },
+  error: { fontSize: 12, textAlign: 'center' },
 });

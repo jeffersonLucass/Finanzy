@@ -1,0 +1,16 @@
+export type TransactionType = 'income' | 'expense';
+export type Entity = { id: number; createdAt: string; updatedAt: string };
+export type Profile = Entity & { name: string };
+export type Category = Entity & { name: string; normalizedName: string; type: TransactionType; icon: string; color: string; isArchived: boolean };
+export type Transaction = Entity & { description: string; categoryId: number; type: TransactionType; amountCents: number; date: string; observation: string | null; isFavorite: boolean; occurrenceId: number | null; operationKey: string | null };
+export type TransactionInput = Pick<Transaction, 'description' | 'categoryId' | 'type' | 'amountCents' | 'date'> & Partial<Pick<Transaction, 'observation' | 'isFavorite'>>;
+export type TransactionFilters = { search?: string; type?: TransactionType; categoryIds?: number[]; start?: string; end?: string; favoritesOnly?: boolean; limit?: number; offset?: number };
+export type Budget = Entity & { categoryId: number; limitCents: number };
+export type Goal = Entity & { name: string; targetCents: number; deadline: string | null; icon: string | null; isArchived: boolean; savedCents: number };
+export type GoalInput = Pick<Goal, 'name' | 'targetCents'> & Partial<Pick<Goal, 'deadline' | 'icon'>>;
+export type GoalMovement = Entity & { goalId: number; kind: 'opening' | 'deposit' | 'withdrawal'; amountCents: number; date: string; operationKey: string };
+export type RecurringExpense = Entity & { kind: 'subscription' | 'installment'; name: string; categoryId: number; amountCents: number; dueDay: number; startMonth: string; installmentCount: number | null; cancelledFromMonth: string | null };
+export type RecurringInput = Omit<RecurringExpense, keyof Entity | 'cancelledFromMonth'>;
+export type ExpenseOccurrence = Entity & { recurringExpenseId: number; referenceMonth: string; dueDate: string; amountCents: number; name: string; categoryId: number; installmentNumber: number | null; status: 'pending' | 'paid' | 'cancelled' };
+export type NotificationRecord = { logicalKey: string; kind: 'reminder' | 'budget'; occurrenceId: number | null; scheduledAt: string | null; nativeId: string | null; state: 'pending' | 'scheduled' | 'handled'; payload: string };
+export type Holiday = { date: string; name: string; type: string };

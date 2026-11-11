@@ -8,6 +8,7 @@ export function formatBrazilianDateInput(value: string) {
 export function isValidBrazilianDate(value: string) {
   if (!/^\d{2}\/\d{2}\/\d{4}$/.test(value)) return false;
   const [day, month, year] = value.split('/').map(Number);
+  if (year < 1900 || year > 2199) return false;
   const date = new Date(year, month - 1, day);
   return date.getFullYear() === year &&
     date.getMonth() === month - 1 &&
@@ -22,4 +23,10 @@ export function toBrazilianDate(value: string) {
 export function toDatabaseDate(value: string) {
   const [day, month, year] = value.split('/');
   return `${year}-${month}-${day}`;
+}
+
+export function todayLocal() {
+  const now = new Date();
+  const offset = now.getTimezoneOffset() * 60_000;
+  return new Date(now.getTime() - offset).toISOString().slice(0, 10);
 }

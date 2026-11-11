@@ -1,74 +1,42 @@
+import { Icon } from '../components/ui/Icon';
 import { router } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { BottomNav } from '../components/BottomNav';
+import { AppScreen } from '../components/ui/AppScreen';
+import { useTheme } from '../theme/ThemeProvider';
 
-type MenuItem = {
-  icon: string;
-  title: string;
-  subtitle: string;
-  color: string;
-  route: '/budgets' | '/goals' | null;
-};
-
-const menuItems: MenuItem[] = [
-  { icon: '💰', title: 'Orçamentos', subtitle: 'Limites mensais', color: '#FFF7E6', route: '/budgets' },
-  { icon: '🎯', title: 'Metas', subtitle: 'Seus objetivos', color: '#FFF1F2', route: '/goals' },
-  { icon: '▤', title: 'Gastos mensais', subtitle: 'Mensalidades e parcelas', color: '#EFF6FF', route: null },
-  { icon: '🗓️', title: 'Calendário', subtitle: 'Visão por data', color: '#FFF1F2', route: null },
-  { icon: '🗂️', title: 'Categorias', subtitle: 'Organize seus gastos', color: '#FFF7E6', route: null },
-  { icon: '★', title: 'Favoritos', subtitle: 'Ações rápidas', color: '#F5F3FF', route: null },
-  { icon: '🔮', title: 'Previsão financeira', subtitle: 'Próximos meses', color: '#FDF2F8', route: null },
-  { icon: '⚙️', title: 'Configurações', subtitle: 'Preferências e dados', color: '#F1F5F9', route: null },
-];
+const menuItems = [
+  { icon: 'banknote', title: 'Orçamentos', subtitle: 'Limites mensais', tone: 'primary', route: '/budgets' },
+  { icon: 'target', title: 'Metas', subtitle: 'Seus objetivos', tone: 'danger', route: '/goals' },
+  { icon: 'receipt', title: 'Gastos mensais', subtitle: 'Mensalidades e parcelas', tone: 'info', route: '/recurring' },
+  { icon: 'calendar', title: 'Calendário', subtitle: 'Visão por data', tone: 'danger', route: '/calendar' },
+  { icon: 'tags', title: 'Categorias', subtitle: 'Organize seus gastos', tone: 'warning', route: '/categories' },
+  { icon: 'star', title: 'Favoritos', subtitle: 'Ações rápidas', tone: 'primary', route: '/favorites' },
+  { icon: 'chart', title: 'Previsão financeira', subtitle: 'Próximos meses', tone: 'danger', route: '/forecast' },
+  { icon: 'settings', title: 'Configurações', subtitle: 'Preferências e dados', tone: 'neutral', route: '/settings' },
+] as const;
 
 export default function MoreScreen() {
+  const { theme } = useTheme();
+  const tone = { warning: theme.colors.primarySoft, danger: theme.colors.primarySoft, info: theme.colors.primarySoft, primary: theme.colors.primarySoft, neutral: theme.colors.primarySoft };
   return (
-    <View style={styles.screen}>
-      <SafeAreaView edges={['top']} style={styles.safe}>
-        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-          <Text style={styles.title}>Mais</Text>
-          <View style={styles.menu}>
-            {menuItems.map((item) => (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityState={{ disabled: item.route === null }}
-                disabled={item.route === null}
-                key={item.title}
-                onPress={() => {
-                  if (item.route) router.push(item.route);
-                }}
-                style={styles.menuItem}
-              >
-                <View style={[styles.iconWrap, { backgroundColor: item.color }]}>
-                  <Text style={styles.icon}>{item.icon}</Text>
-                </View>
-                <View style={styles.menuText}>
-                  <Text style={styles.menuTitle}>{item.title}</Text>
-                  <Text style={styles.subtitle}>{item.subtitle}</Text>
-                </View>
-                <Text style={styles.chevron}>›</Text>
-              </Pressable>
-            ))}
-          </View>
-        </ScrollView>
-      </SafeAreaView>
-      <BottomNav active="more" />
-    </View>
+    <AppScreen footer={<BottomNav active="more" />}>
+      <Text style={[styles.title, { color: theme.colors.text }]}>Mais</Text>
+      <View style={styles.menu}>
+        {menuItems.map(item => <Pressable accessibilityRole="button" key={item.title} onPress={() => router.push(item.route)} style={styles.item}><View style={[styles.iconWrap, { backgroundColor: tone[item.tone] }]}><Icon name={item.icon} size={18} /></View><View style={styles.copy}><Text style={[styles.name, { color: theme.colors.text }]}>{item.title}</Text><Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>{item.subtitle}</Text></View><Text style={[styles.chevron, { color: theme.colors.textMuted }]}>›</Text></Pressable>)}
+      </View>
+    </AppScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { backgroundColor: '#F7F9FC', flex: 1 },
-  safe: { flex: 1 },
-  content: { padding: 20, paddingBottom: 30 },
-  title: { color: '#111827', fontSize: 24, fontWeight: '700', marginBottom: 16, marginTop: 8 },
-  menu: { backgroundColor: '#FFFFFF', borderRadius: 18, paddingHorizontal: 14 },
-  menuItem: { alignItems: 'center', flexDirection: 'row', minHeight: 66 },
-  iconWrap: { alignItems: 'center', borderRadius: 12, height: 38, justifyContent: 'center', width: 38 },
+  title: { fontSize: 22, fontWeight: '700', marginBottom: 28, lineHeight: 28 },
+  menu: { paddingVertical: 4 },
+  item: { alignItems: 'center', flexDirection: 'row', minHeight: 62 },
+  iconWrap: { alignItems: 'center', borderRadius: 12, height: 36, justifyContent: 'center', width: 36 },
   icon: { fontSize: 17 },
-  menuText: { flex: 1, marginLeft: 12 },
-  menuTitle: { color: '#111827', fontSize: 13, fontWeight: '600' },
-  subtitle: { color: '#64748B', fontSize: 11, marginTop: 3 },
-  chevron: { color: '#94A3B8', fontSize: 22, marginLeft: 8 },
+  copy: { flex: 1, marginLeft: 10 },
+  name: { fontSize: 13, fontWeight: '600' },
+  subtitle: { fontSize: 11, marginTop: 3 },
+  chevron: { fontSize: 22, marginLeft: 8 },
 });

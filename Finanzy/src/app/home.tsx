@@ -1,256 +1,92 @@
-import { router, useFocusEffect } from 'expo-router';
-import { useCallback, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Icon } from '../components/ui/Icon';
+import { router } from 'expo-router';
+import { useEffect, useState } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { getRuntime } from '../application/runtime';
 import { BottomNav } from '../components/BottomNav';
-import {
-  Budget,
-  clearLocalData,
-  getBudgets,
-  getGoals,
-  getProfileName,
-  getTransactions,
-  Goal,
-  Transaction,
-} from '../database';
-import { toBrazilianDate } from '../date';
-
-const currency = (value: number) =>
-  value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+import { TransactionRow } from '../components/TransactionRow';
+import { AppScreen } from '../components/ui/AppScreen';
+import { ErrorState, LoadingState } from '../components/ui/AsyncState';
+import { Button } from '../components/ui/Button';
+import { Card } from '../components/ui/Card';
+import { useDashboard } from '../features/dashboard/use-dashboard';
+import { Notice } from '../features/notifications/notification-service';
+import { formatCurrency } from '../presentation/format';
+import { useTheme } from '../theme/ThemeProvider';
 
 export default function HomeScreen() {
-  const [name, setName] = useState('');
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [budgets, setBudgets] = useState<Budget[]>([]);
-  const [goals, setGoals] = useState<Goal[]>([]);
-
-  useFocusEffect(useCallback(() => {
-    Promise.all([
-      getProfileName(),
-      getTransactions(),
-      getBudgets(),
-      getGoals(),
-    ]).then(([profileName, rows, savedBudgets, savedGoals]) => {
-      setName(profileName ?? '');
-      setTransactions(rows);
-      setBudgets(savedBudgets);
-      setGoals(savedGoals);
-    });
-  }, []));
-
-  const income = transactions.filter((item) => item.type === 'income')
-    .reduce((total, item) => total + item.amount, 0);
-  const expenses = transactions.filter((item) => item.type === 'expense')
-    .reduce((total, item) => total + item.amount, 0);
-  const balance = income - expenses;
-  const balanceIsNegative = balance < 0;
-
-  const monthKey = (() => {
-    const now = new Date();
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-  })();
-  const currentMonthExpenses = transactions.filter((item) =>
-    item.type === 'expense' && item.date.slice(0, 7) === monthKey
-  );
-  const budgetLimit = budgets.reduce((total, item) => total + item.monthlyLimit, 0);
-  const budgetSpent = budgets.reduce((total, budget) => {
-    const spent = currentMonthExpenses
-      .filter((item) => item.category === budget.category)
-      .reduce((sum, item) => sum + item.amount, 0);
-    return total + spent;
-  }, 0);
-  const budgetProgress = budgetLimit > 0
-    ? Math.min(Math.round((budgetSpent / budgetLimit) * 100), 100)
-    : 0;
-  const featuredGoal = goals[0] ?? null;
-  const goalProgress = featuredGoal
-    ? Math.min(Math.round((featuredGoal.savedAmount / featuredGoal.targetAmount) * 100), 100)
-    : 0;
-  
-  async function logout() {
-    await clearLocalData();
-    router.replace('/onboarding');
-  }
-
+  const { theme } = useTheme();
+  const query = useDashboard();
+  const [notice, setNotice] = useState<Notice | null>(null);
+  useEffect(() => {
+    let unsubscribe: () => void = () => undefined;
+    void getRuntime().then(runtime => { unsubscribe = runtime.notifications.subscribeFeedback(setNotice); });
+    return () => unsubscribe();
+  }, []);
+  const dashboard = query.data;
+  const budgetLimit = dashboard?.budget.limitCents ?? 0;
+  const budgetSpent = dashboard?.budget.spentCents ?? 0;
+  const budgetProgress = budgetLimit ? Math.min(budgetSpent / budgetLimit * 100, 100) : 0;
+  const goal = dashboard?.goal;
+  const goalProgress = goal ? Math.min(goal.savedCents / goal.targetCents * 100, 100) : 0;
+  if (query.loading && !dashboard) return <AppScreen footer={<BottomNav active="home" />}><LoadingState /></AppScreen>;
+  if (query.error || !dashboard) return <AppScreen footer={<BottomNav active="home" />}><ErrorState error={query.error} onRetry={query.reload} /></AppScreen>;
   return (
-    <View style={styles.screen}>
-      <SafeAreaView edges={['top']} style={styles.safe}>
-        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-          <View style={styles.topRow}>
-            <View>
-              <Text style={styles.greeting}>Olá, {name || 'Usuário'}</Text>
-              <Text style={styles.subtitle}>Veja como estão suas finanças</Text>
-            </View>
-            <Pressable onPress={logout} style={styles.logoutButton}>
-              <Text style={styles.logoutText}>Sair</Text>
-            </Pressable>
-          </View>
-
-          <View style={[styles.balanceCard,balanceIsNegative && { backgroundColor: '#EF4444' }]}>
-            <Text style={styles.balanceLabel}>Saldo disponível</Text>
-            <Text style={styles.balance}>{currency(balance)}</Text>
-            <View style={styles.summaryRow}>
-              <View>
-                <Text style={styles.summaryLabel}>↑ Receitas</Text>
-                <Text style={styles.summaryValue}>{currency(income)}</Text>
-              </View>
-              <View>
-                <Text style={styles.summaryLabel}>↓ Despesas</Text>
-                <Text style={styles.summaryValue}>{currency(expenses)}</Text>
-              </View>
-            </View>
-          </View>
-
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Últimas transações</Text>
-            <Pressable onPress={() => router.push('/transactions')}>
-              <Text style={styles.link}>Ver todas</Text>
-            </Pressable>
-          </View>
-
-          {transactions.length === 0 && (
-            <View style={styles.empty}>
-              <Text style={styles.emptyText}>Nenhuma movimentação cadastrada</Text>
-              <Pressable onPress={() => router.push('/new-transaction')}>
-                <Text style={styles.link}>Adicionar primeira movimentação</Text>
-              </Pressable>
-            </View>
-          )}
-
-          {transactions.slice(0, 4).map((item) => (
-            <View key={item.id} style={styles.transaction}>
-              <View style={styles.icon}><Text>{item.category === 'Salário' ? '💰' : item.category === 'Transporte' ? '🚕' : item.category === 'Alimentação' ? '🍔' : '🎮'}</Text></View>
-              <View style={styles.transactionInfo}>
-                <Text style={styles.transactionName}>{item.description}</Text>
-                <Text style={styles.transactionCategory}>
-                  {item.category} · {toBrazilianDate(item.date)}
-                </Text>
-              </View>
-              <Text style={[styles.amount, item.type === 'income' ? styles.income : styles.expense]}>
-                {item.type === 'income' ? '+ ' : '- '}{currency(item.amount)}
-              </Text>
-            </View>
-          ))}
-
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Orçamento do mês</Text>
-            <Pressable onPress={() => router.push('/budgets')}>
-              <Text style={styles.link}>Ver todos</Text>
-            </Pressable>
-          </View>
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => router.push('/budgets')}
-            style={styles.featureCard}
-          >
-            {budgets.length === 0 ? (
-              <View style={styles.emptyFeature}>
-                <Text style={styles.featureTitle}>Defina seus limites mensais</Text>
-                <Text style={styles.featureEmptyText}>Crie um orçamento por categoria</Text>
-              </View>
-            ) : (
-              <>
-                <View style={styles.featureRow}>
-                  <Text style={styles.featureLabel}>{currency(budgetSpent)} de {currency(budgetLimit)}</Text>
-                  <Text style={styles.featurePercentage}>{budgetProgress}%</Text>
-                </View>
-                <View style={styles.progress}>
-                  <View style={[styles.progressFill, { width: `${budgetProgress}%` }]} />
-                </View>
-              </>
-            )}
-          </Pressable>
-
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Meta financeira</Text>
-            <Pressable onPress={() => router.push('/goals')}>
-              <Text style={styles.link}>Ver todas</Text>
-            </Pressable>
-          </View>
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => router.push('/goals')}
-            style={styles.featureCard}
-          >
-            {featuredGoal ? (
-              <>
-                <View style={styles.goalRow}>
-                  <View style={styles.goalIconWrap}>
-                    <Text style={styles.goalIcon}>{featuredGoal.icon || '🎯'}</Text>
-                  </View>
-                  <View style={styles.goalText}>
-                    <Text style={styles.featureTitle}>{featuredGoal.name}</Text>
-                    <Text style={styles.featureEmptyText}>
-                      {currency(featuredGoal.savedAmount)} de {currency(featuredGoal.targetAmount)}
-                    </Text>
-                  </View>
-                  <Text style={styles.featurePercentage}>{goalProgress}%</Text>
-                </View>
-                <View style={styles.progress}>
-                  <View style={[styles.progressFill, { width: `${goalProgress}%` }]} />
-                </View>
-              </>
-            ) : (
-              <View style={styles.emptyFeature}>
-                <Text style={styles.featureTitle}>Comece uma nova meta</Text>
-                <Text style={styles.featureEmptyText}>Guarde dinheiro aos poucos para seus objetivos</Text>
-              </View>
-            )}
-          </Pressable>
-
-        </ScrollView>
-      </SafeAreaView>
-      <BottomNav active="home" />
-    </View>
+    <AppScreen footer={<BottomNav active="home" />}>
+      <View style={styles.top}><View style={styles.copy}><Text style={[styles.greeting, { color: theme.colors.text }]}>Olá, {dashboard.profile?.name || 'Usuário'}</Text><Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>Veja como estão suas finanças</Text></View></View>
+      {notice ? <Pressable accessibilityRole="button" onPress={() => { if (notice.destination.screen === 'budgets') router.push('/budgets'); else router.push(`/occurrences/${notice.destination.id}`); setNotice(null); }}><Card style={[styles.notice, { backgroundColor: theme.colors.warningSoft }]}><Text style={[styles.noticeTitle, { color: theme.colors.warning }]}>{notice.title}</Text><Text style={[styles.noticeBody, { color: theme.colors.textSecondary }]}>{notice.body}</Text></Card></Pressable> : null}
+      <Card style={[styles.balanceCard, { backgroundColor: dashboard.availableCents < 0 ? theme.colors.danger : theme.colors.primary }]}>
+        <Text style={[styles.balanceLabel, { color: theme.colors.onPrimary }]}>Saldo disponível</Text><Text style={[styles.balance, { color: theme.colors.onPrimary }]}>{formatCurrency(dashboard.availableCents)}</Text><View style={styles.summary}><View><Text style={[styles.balanceLabel, { color: theme.colors.onPrimary }]}>↑ Receitas</Text><Text style={[styles.summaryValue, { color: theme.colors.onPrimary }]}>{formatCurrency(dashboard.monthly.incomeCents)}</Text></View><View><Text style={[styles.balanceLabel, { color: theme.colors.onPrimary }]}>↓ Despesas</Text><Text style={[styles.summaryValue, { color: theme.colors.onPrimary }]}>{formatCurrency(dashboard.monthly.expenseCents)}</Text></View></View>
+      </Card>
+      <Pressable accessibilityRole="button" onPress={() => router.push('/budgets')} style={styles.budgetCard}>
+        <Card style={styles.budgetInner}>
+          <View style={styles.between}><Text style={[styles.cardTitle, { color: theme.colors.text }]}>Orçamento de {new Date(`${dashboard.period}-02T12:00:00`).toLocaleDateString('pt-BR', { month: 'long' })}</Text><Text style={[styles.percent, { color: theme.colors.primaryStrong }]}>{budgetProgress.toFixed(0)}%</Text></View>
+          <Text style={[styles.meta, { color: theme.colors.textSecondary }]}>{dashboard.budget.items.length ? `${formatCurrency(budgetSpent)} de ${formatCurrency(budgetLimit)}` : 'Defina seus limites mensais'}</Text><Progress value={budgetProgress} />
+        </Card>
+      </Pressable>
+      <Section title="Últimas transações" onPress={() => router.push('/transactions')} />
+      {dashboard.latest.length ? dashboard.latest.map(item => <TransactionRow amountCents={item.amountCents} category={item.categoryName} date={item.date} description={item.description} icon={item.categoryIcon} key={item.id} onPress={() => router.push(`/transactions/${item.id}`)} type={item.type} />) : <Card><Text style={[styles.emptyText, { color: theme.colors.textSecondary }]}>Nenhuma movimentação cadastrada.</Text><Button label="Adicionar movimentação" onPress={() => router.push('/transactions/new')} variant="ghost" /></Card>}
+      <Section title="Meta financeira" onPress={() => router.push('/goals')} />
+      <Pressable accessibilityRole="button" onPress={() => router.push(goal ? `/goals/${goal.id}` : '/goals/new')}><Card>{goal ? <><View style={styles.goal}><View style={styles.goalIcon}><Icon name={goal.icon || 'target'} size={23} /></View><View style={styles.copy}><Text style={[styles.cardTitle, { color: theme.colors.text }]}>{goal.name}</Text><Text style={[styles.meta, { color: theme.colors.textSecondary }]}>{formatCurrency(goal.savedCents)} de {formatCurrency(goal.targetCents)}</Text></View><Text style={[styles.percent, { color: theme.colors.primaryStrong }]}>{goalProgress.toFixed(0)}%</Text></View><Progress value={goalProgress} /></> : <><Text style={[styles.cardTitle, { color: theme.colors.text }]}>Comece uma nova meta</Text><Text style={[styles.meta, { color: theme.colors.textSecondary }]}>Guarde dinheiro aos poucos para seus objetivos.</Text></>}</Card></Pressable>
+    </AppScreen>
   );
 }
 
+function Section({ title, onPress }: { title: string; onPress: () => void }) {
+  const { theme } = useTheme();
+  return <View style={styles.section}><Text style={[styles.sectionTitle, { color: theme.colors.text }]}>{title}</Text><Text accessibilityRole="button" onPress={onPress} style={[styles.link, { color: theme.colors.primaryStrong }]}>Ver todos</Text></View>;
+}
+
+function Progress({ value }: { value: number }) {
+  const { theme } = useTheme();
+  return <View style={[styles.track, { backgroundColor: theme.colors.border }]}><View style={[styles.fill, { backgroundColor: theme.colors.primary, width: `${Math.min(value, 100)}%` }]} /></View>;
+}
+
 const styles = StyleSheet.create({
-  screen: { backgroundColor: '#F7F9FC', flex: 1 },
-  safe: { flex: 1 },
-  content: { padding: 20, paddingBottom: 30 },
-  topRow: { alignItems: 'flex-start', flexDirection: 'row', justifyContent: 'space-between' },
-  greeting: { color: '#111827', fontSize: 24, fontWeight: '700' },
-  subtitle: { color: '#64748B', fontSize: 14, marginTop: 4 },
-  logoutButton: { backgroundColor: '#FFFFFF', borderColor: '#E2E8F0', borderRadius: 12, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 8 },
-  logoutText: { color: '#64748B', fontSize: 13, fontWeight: '700' },
-  balanceCard: {
-    backgroundColor: '#10B981',
-    borderRadius: 20,
-    marginTop: 18,
-    padding: 18,
-  },
-  balanceLabel: { color: '#D1FAE5', fontSize: 13 },
-  balance: { color: '#FFFFFF', fontSize: 31, fontWeight: '700', marginTop: 8 },
-  summaryRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 18 },
-  summaryLabel: { color: '#D1FAE5', fontSize: 12 },
-  summaryValue: { color: '#FFFFFF', fontSize: 13, marginTop: 2 },
-  sectionHeader: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', marginTop: 22 },
-  sectionTitle: { color: '#111827', fontSize: 18, fontWeight: '700' },
-  percentage: { color: '#10B981', fontSize: 13, fontWeight: '700' },
-  budget: { color: '#64748B', fontSize: 13, marginTop: 6 },
-  progress: { backgroundColor: '#DBEAFE', borderRadius: 5, height: 7, marginTop: 9 },
-  progressFill: { backgroundColor: '#10B981', borderRadius: 5, height: 7, width: '76%' },
-  featureCard: { backgroundColor: '#FFFFFF', borderRadius: 16, marginTop: 12, padding: 16 },
-  featureRow: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
-  featureLabel: { color: '#64748B', fontSize: 12 },
-  featurePercentage: { color: '#10B981', fontSize: 13, fontWeight: '700' },
-  featureTitle: { color: '#111827', fontSize: 15, fontWeight: '700' },
-  featureEmptyText: { color: '#64748B', fontSize: 12, marginTop: 4 },
-  emptyFeature: { paddingVertical: 4 },
-  goalRow: { alignItems: 'center', flexDirection: 'row' },
-  goalIconWrap: { alignItems: 'center', backgroundColor: '#ECFDF5', borderRadius: 12, height: 42, justifyContent: 'center', width: 42 },
-  goalIcon: { fontSize: 20 },
-  goalText: { flex: 1, marginHorizontal: 12 },
-  link: { color: '#10B981', fontSize: 13, fontWeight: '700' },
-  transaction: { alignItems: 'center', flexDirection: 'row', marginTop: 16 },
-  icon: { alignItems: 'center', backgroundColor: '#FFFFFF', borderRadius: 16, height: 42, justifyContent: 'center', width: 42 },
-  transactionInfo: { flex: 1, marginHorizontal: 12 },
-  transactionName: { color: '#111827', fontSize: 15, fontWeight: '700' },
-  transactionCategory: { color: '#64748B', fontSize: 12, marginTop: 2 },
-  amount: { fontSize: 14, fontWeight: '700' },
-  income: { color: '#059669' },
-  expense: { color: '#EF4444' },
-  empty: { alignItems: 'center', borderColor: '#E2E8F0', borderRadius: 14, borderStyle: 'dashed', borderWidth: 1, marginTop: 12, padding: 20 },
-  emptyText: { color: '#64748B', marginBottom: 8 },
+  top: { alignItems: 'center', flexDirection: 'row', gap: 12 },
+  copy: { flex: 1 },
+  greeting: { fontSize: 22, fontWeight: '700', lineHeight: 28 },
+  subtitle: { fontSize: 12, marginTop: 4 },
+  notice: { marginTop: 14 },
+  noticeTitle: { fontSize: 14, fontWeight: '700' },
+  noticeBody: { fontSize: 12, marginTop: 4 },
+  balanceCard: { borderRadius: 20, marginTop: 24, padding: 18 },
+  balanceLabel: { fontSize: 12, opacity: 0.95 },
+  balance: { fontSize: 28, fontWeight: '700', marginTop: 8 },
+  summary: { flexDirection: 'row', gap: 32, marginTop: 12 },
+  summaryValue: { fontSize: 12, marginTop: 3 },
+  budgetCard: { marginTop: 12 },
+  budgetInner: { padding: 14 },
+  section: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8, marginTop: 16 },
+  sectionTitle: { fontSize: 16, fontWeight: '600' },
+  link: { fontSize: 12, fontWeight: '600' },
+  emptyText: { fontSize: 13, marginBottom: 8, textAlign: 'center' },
+  between: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
+  meta: { fontSize: 12, marginTop: 10 },
+  percent: { fontSize: 13, fontWeight: '700' },
+  track: { borderRadius: 5, height: 7, marginTop: 11, overflow: 'hidden' },
+  fill: { borderRadius: 5, height: 7 },
+  cardTitle: { fontSize: 16, fontWeight: '600' },
+  goal: { alignItems: 'center', flexDirection: 'row' },
+  goalIcon: { fontSize: 23, marginRight: 12 },
 });
