@@ -1,36 +1,27 @@
+import { Icon } from './ui/Icon';
 import { router } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../theme/ThemeProvider';
 
 type BottomNavProps = { active: 'home' | 'transactions' | 'reports' | 'more' | 'new' };
 
 export function BottomNav({ active }: BottomNavProps) {
   const { theme } = useTheme();
+  const insets = useSafeAreaInsets();
   const items = [
-    { key: 'home' as const, label: 'Início', icon: '⌂', route: '/home' },
-    { key: 'transactions' as const, label: 'Transações', icon: '≡', route: '/transactions' },
-    { key: 'reports' as const, label: 'Relatórios', icon: '◔', route: '/reports' },
-    { key: 'more' as const, label: 'Mais', icon: '•••', route: '/more' },
+    { key: 'home' as const, label: 'Início', icon: 'house', route: '/home' },
+    { key: 'transactions' as const, label: 'Transações', icon: 'menu', route: '/transactions' },
+    { key: 'reports' as const, label: 'Relatórios', icon: 'chart-pie', route: '/reports' },
+    { key: 'more' as const, label: 'Mais', icon: 'more', route: '/more' },
   ];
   return (
-    <View style={[styles.nav, { backgroundColor: theme.colors.surface, borderTopColor: theme.colors.border }]}>
-      {items.slice(0, 2).map(item => {
+    <View accessibilityRole="tablist" style={[styles.nav, { backgroundColor: theme.colors.surface, borderTopColor: theme.colors.border, paddingBottom: insets.bottom, minHeight: 76 + insets.bottom }]}>
+      {items.map(item => {
         const selected = item.key === active;
         return (
-          <Pressable accessibilityRole="button" accessibilityState={{ selected }} key={item.key} onPress={() => router.replace(item.route)} style={styles.item}>
-            <Text style={[styles.icon, { color: selected ? theme.colors.primary : theme.colors.textSecondary }]}>{item.icon}</Text>
-            <Text style={[styles.label, { color: selected ? theme.colors.primary : theme.colors.textSecondary }]}>{item.label}</Text>
-          </Pressable>
-        );
-      })}
-      <Pressable accessibilityLabel="Nova movimentação" accessibilityRole="button" onPress={() => router.push('/transactions/new')} style={[styles.newButton, { backgroundColor: theme.colors.primary }]}>
-        <Text style={[styles.newIcon, { color: theme.colors.onPrimary }]}>+</Text>
-      </Pressable>
-      {items.slice(2).map(item => {
-        const selected = item.key === active;
-        return (
-          <Pressable accessibilityRole="button" accessibilityState={{ selected }} key={item.key} onPress={() => router.replace(item.route)} style={styles.item}>
-            <Text style={[styles.icon, { color: selected ? theme.colors.primary : theme.colors.textSecondary }]}>{item.icon}</Text>
+          <Pressable accessibilityRole="tab" accessibilityState={{ selected }} key={item.key} onPress={() => router.replace(item.route)} style={styles.item}>
+            <Icon color={selected ? theme.colors.primary : theme.colors.textSecondary} name={item.icon} size={20} />
             <Text style={[styles.label, { color: selected ? theme.colors.primary : theme.colors.textSecondary }]}>{item.label}</Text>
           </Pressable>
         );
@@ -40,10 +31,8 @@ export function BottomNav({ active }: BottomNavProps) {
 }
 
 const styles = StyleSheet.create({
-  nav: { alignItems: 'center', borderTopWidth: 1, flexDirection: 'row', height: 82, justifyContent: 'space-around', paddingHorizontal: 8 },
-  item: { alignItems: 'center', justifyContent: 'center', width: 64 },
+  nav: { alignItems: 'center', borderTopWidth: 1, flexDirection: 'row', justifyContent: 'space-around', paddingHorizontal: 20 },
+  item: { alignItems: 'center', flex: 1, justifyContent: 'center', minHeight: 60 },
   icon: { fontSize: 20, lineHeight: 24 },
   label: { fontSize: 11, marginTop: 2 },
-  newButton: { alignItems: 'center', borderRadius: 24, height: 48, justifyContent: 'center', marginBottom: 30, width: 48 },
-  newIcon: { fontSize: 30, lineHeight: 32 },
 });

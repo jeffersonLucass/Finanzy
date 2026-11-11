@@ -1,8 +1,8 @@
 import { normalizeName } from '../../domain/core';
 import { SqlConnection } from './port';
 
-const expenseSeeds: [string, string][] = [['Alimentação', '🍔'], ['Moradia', '🏠'], ['Transporte', '🚕'], ['Saúde', '❤️'], ['Educação', '📚'], ['Lazer', '🎮'], ['Compras', '🛒️'], ['Serviços', '🧾'], ['Outros', '📦']];
-const incomeSeeds: [string, string][] = [['Salário', '💰'], ['Freelance', '💼'], ['Investimentos', '📈'], ['Presente', '🎁'], ['Reembolso', '↩️'], ['Outros', '📦']];
+const expenseSeeds: [string, string][] = [['Alimentação', 'utensils'], ['Moradia', 'house'], ['Transporte', 'car'], ['Saúde', 'heart'], ['Educação', 'book-open'], ['Lazer', 'gamepad'], ['Compras', 'shopping-cart'], ['Serviços', 'receipt'], ['Outros', 'package']];
+const incomeSeeds: [string, string][] = [['Salário', 'banknote'], ['Freelance', 'briefcase'], ['Investimentos', 'trending-up'], ['Presente', 'gift'], ['Reembolso', 'undo'], ['Outros', 'package']];
 
 export async function seedCategories(database: SqlConnection, at: string) {
   for (const [type, entries] of [['expense', expenseSeeds], ['income', incomeSeeds]] as const) {

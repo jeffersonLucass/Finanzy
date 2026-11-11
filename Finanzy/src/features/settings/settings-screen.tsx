@@ -1,12 +1,12 @@
 import { router } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Alert, StyleSheet, Text, View } from 'react-native';
+import { Alert, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { getRuntime } from '../../application/runtime';
 import { AppHeader } from '../../components/ui/AppHeader';
 import { AppScreen } from '../../components/ui/AppScreen';
 import { ErrorState, LoadingState } from '../../components/ui/AsyncState';
 import { Button } from '../../components/ui/Button';
-import { Card } from '../../components/ui/Card';
+import { SettingsRow } from '../../components/ui/SettingsRow';
 import { FormField } from '../../components/ui/FormField';
 import { SegmentedControl } from '../../components/ui/SegmentedControl';
 import { errorMessage } from '../../domain/core';
@@ -20,6 +20,7 @@ export function SettingsScreen() {
   const load = useCallback(() => getRuntime().then(runtime => runtime.settings.get()), []);
   const query = useAsyncQuery(load);
   const [feedback, setFeedback] = useState('');
+  const [editing, setEditing] = useState<'theme' | 'period' | 'reminders' | null>(null);
   const update = useCallback((patch: Partial<Omit<Settings, 'version'>>) => getRuntime().then(runtime => runtime.settings.update(patch)), []);
   const updateAction = useAsyncAction(update, query.reload);
   const clear = useCallback(() => getRuntime().then(runtime => runtime.dataManagement.clearFinancialData()), []);
@@ -28,6 +29,8 @@ export function SettingsScreen() {
   const resetAction = useAsyncAction(reset, () => router.replace('/onboarding'));
   const toggleNotifications = useCallback((enabled: boolean) => getRuntime().then(runtime => runtime.notifications.enable(enabled)), []);
   const notificationAction = useAsyncAction(toggleNotifications, query.reload);
+  const signOut = useCallback(() => getRuntime().then(runtime => runtime.session.signOut()), []);
+  const logoutAction = useAsyncAction(signOut, () => router.replace('/onboarding'));
   const run = <T,>(promise: Promise<T>) => void promise.catch(error => setFeedback(errorMessage(error)));
   if (query.loading && !query.data) return <AppScreen><LoadingState /></AppScreen>;
   if (query.error || !query.data) return <AppScreen><AppHeader back title="Configurações" /><ErrorState error={query.error} onRetry={query.reload} /></AppScreen>;
@@ -38,37 +41,32 @@ export function SettingsScreen() {
     <AppScreen>
       <AppHeader back title="Configurações" />
       <Text style={[styles.section, { color: theme.colors.text }]}>Aparência</Text>
-      <Card style={styles.card}><SegmentedControl onChange={value => run(updateAction.execute({ theme: value }))} options={[{ value: 'light', label: 'Claro' }, { value: 'dark', label: 'Escuro' }, { value: 'system', label: 'Sistema' }]} value={settings.theme} /></Card>
+      <SettingsRow hint="Claro, escuro ou sistema" icon="chart-pie" label="Tema" onPress={() => setEditing('theme')} value={settings.theme === 'light' ? 'Claro' : settings.theme === 'dark' ? 'Escuro' : 'Sistema'} />
       <Text style={[styles.section, { color: theme.colors.text }]}>Preferências</Text>
-      <Card style={styles.card}>
-        <Setting label="Moeda" value="Real brasileiro (BRL)" />
-        <FormField keyboardType="number-pad" label="Dia inicial do mês financeiro" onEndEditing={event => run(updateAction.execute({ monthStartDay: Number(event.nativeEvent.text) }))} defaultValue={String(settings.monthStartDay)} />
-        <FormField label="Fuso horário" onEndEditing={event => run(updateAction.execute({ timezone: event.nativeEvent.text }))} defaultValue={settings.timezone} />
-        <FormField keyboardType="number-pad" label="Hora dos lembretes" onEndEditing={event => run(updateAction.execute({ reminderHour: Number(event.nativeEvent.text) }))} defaultValue={String(settings.reminderHour)} />
-        <Button label={settings.notificationsEnabled ? 'Desativar notificações' : 'Ativar notificações'} loading={notificationAction.loading} onPress={() => run(notificationAction.execute(!settings.notificationsEnabled))} variant="secondary" />
-      </Card>
+      <SettingsRow hint="Real brasileiro" icon="banknote" label="Moeda" value="BRL" />
+      <SettingsRow hint="Primeiro dia" icon="calendar" label="Mês financeiro" onPress={() => setEditing('period')} value={String(settings.monthStartDay)} />
+      <SettingsRow hint="Alertas e lembretes" icon="bell" label="Notificações" onPress={() => setEditing('reminders')} value={settings.notificationsEnabled ? 'Ativas' : 'Desativadas'} />
       <Text style={[styles.section, { color: theme.colors.text }]}>Dados</Text>
-      <Card style={styles.card}>
-        <Button label="Exportar dados" onPress={() => router.push('/settings/export')} variant="secondary" />
-        <View style={styles.gap}><Button label="Limpar dados financeiros" loading={clearAction.loading} onPress={confirmClear} variant="danger" /></View>
-        <View style={styles.gap}><Button label="Redefinir aplicativo" loading={resetAction.loading} onPress={confirmReset} variant="danger" /></View>
-      </Card>
+      <SettingsRow hint="CSV ou PDF" icon="file-text" label="Exportar dados" onPress={() => router.push('/settings/export')} />
+      <SettingsRow danger hint="Remover movimentações" icon="receipt" label="Limpar dados" onPress={confirmClear} />
+      <SettingsRow danger hint="Voltar ao início" icon="refresh" label="Redefinir aplicativo" onPress={confirmReset} />
+      <SettingsRow hint="Seus dados permanecem no aparelho" icon="logout" label="Sair" onPress={() => run(logoutAction.execute())} />
+      <Modal animationType="slide" onRequestClose={() => setEditing(null)} transparent visible={editing !== null}>
+        <View style={[styles.overlay, { backgroundColor: theme.colors.overlay }]}><Pressable accessibilityLabel="Fechar preferências" onPress={() => setEditing(null)} style={StyleSheet.absoluteFill} /><View accessibilityViewIsModal style={[styles.sheet, { backgroundColor: theme.colors.surface }]}><Text style={[styles.section, { color: theme.colors.text }]}>{editing === 'theme' ? 'Tema' : editing === 'period' ? 'Mês financeiro' : 'Notificações'}</Text>
+          {editing === 'theme' ? <SegmentedControl onChange={value => run(updateAction.execute({ theme: value }))} options={[{ value: 'light', label: 'Claro' }, { value: 'dark', label: 'Escuro' }, { value: 'system', label: 'Sistema' }]} value={settings.theme} /> : null}
+          {editing === 'period' ? <FormField inputKind="integer" label="Primeiro dia (1 a 28)" max={28} maxLength={2} min={1} onEndEditing={event => run(updateAction.execute({ monthStartDay: Number(event.nativeEvent.text) }))} required defaultValue={String(settings.monthStartDay)} /> : null}
+          {editing === 'reminders' ? <><FormField autoCapitalize="none" autoCorrect={false} inputKind="timezone" label="Fuso horário" maxLength={100} onEndEditing={event => run(updateAction.execute({ timezone: event.nativeEvent.text }))} required defaultValue={settings.timezone} /><FormField inputKind="integer" label="Hora dos lembretes (0 a 23)" max={23} maxLength={2} min={0} onEndEditing={event => run(updateAction.execute({ reminderHour: Number(event.nativeEvent.text) }))} required defaultValue={String(settings.reminderHour)} /><Button label={settings.notificationsEnabled ? 'Desativar notificações' : 'Ativar notificações'} loading={notificationAction.loading} onPress={() => run(notificationAction.execute(!settings.notificationsEnabled))} /></> : null}
+          {feedback ? <Text style={[styles.error, { color: theme.colors.dangerStrong }]}>{feedback}</Text> : null}<Button label="Concluir" onPress={() => setEditing(null)} variant="ghost" />
+        </View></View>
+      </Modal>
       {feedback || updateAction.error || notificationAction.error ? <Text accessibilityLiveRegion="polite" style={[styles.error, { color: theme.colors.dangerStrong }]}>{feedback || errorMessage(updateAction.error || notificationAction.error)}</Text> : null}
     </AppScreen>
   );
 }
 
-function Setting({ label, value }: { label: string; value: string }) {
-  const { theme } = useTheme();
-  return <View style={styles.setting}><Text style={[styles.label, { color: theme.colors.textSecondary }]}>{label}</Text><Text style={[styles.value, { color: theme.colors.text }]}>{value}</Text></View>;
-}
-
 const styles = StyleSheet.create({
-  section: { fontSize: 16, fontWeight: '700', marginBottom: 9, marginTop: 8 },
-  card: { marginBottom: 14 },
-  setting: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 },
-  label: { fontSize: 13 },
-  value: { fontSize: 13, fontWeight: '600' },
-  gap: { marginTop: 10 },
+  section: { fontSize: 16, fontWeight: '600', marginBottom: 9, marginTop: 14 },
+  overlay: { flex: 1, justifyContent: 'flex-end' },
+  sheet: { alignSelf: 'center', borderTopLeftRadius: 24, borderTopRightRadius: 24, maxWidth: 480, padding: 20, width: '100%' },
   error: { fontSize: 13, marginTop: 10, textAlign: 'center' },
 });

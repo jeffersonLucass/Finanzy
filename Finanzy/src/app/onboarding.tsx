@@ -16,6 +16,7 @@ import { useSession } from '../features/session/use-session';
 import { useAsyncAction } from '../hooks/use-async-action';
 import { errorMessage } from '../domain/core';
 import { useTheme } from '../theme/ThemeProvider';
+import { inputLimits, sanitizeInput } from '../presentation/input';
 
 export default function OnboardingScreen() {
   const { theme } = useTheme();
@@ -47,7 +48,8 @@ export default function OnboardingScreen() {
           <Text style={[styles.label, { color: theme.colors.textSecondary }]}>Seu nome</Text>
           <TextInput
             autoCapitalize="words"
-            onChangeText={setName}
+            maxLength={inputLimits.text}
+            onChangeText={value => setName(sanitizeInput(value))}
             placeholder="Ex: Gustavo"
             placeholderTextColor={theme.colors.textMuted}
             style={[styles.input, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border, color: theme.colors.text }]}

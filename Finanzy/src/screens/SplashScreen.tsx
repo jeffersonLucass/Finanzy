@@ -7,7 +7,7 @@ export function SplashScreen() {
   return (
     <View style={[styles.screen, { backgroundColor: theme.colors.canvas }]}>
       <View style={styles.brand}>
-        <BrandMark />
+        <BrandMark large />
         <Text style={[styles.title, { color: theme.colors.text }]}>Finanzy</Text>
         <Text style={[styles.tagline, { color: theme.colors.textSecondary }]}>Seu dinheiro, mais organizado.</Text>
       </View>
@@ -26,14 +26,14 @@ const styles = StyleSheet.create({
     transform: [{ translateY: 12 }],
   },
   title: {
-    fontSize: 28,
+    fontSize: 34,
     fontWeight: '700',
-    lineHeight: 34,
-    marginTop: 10,
+    lineHeight: 42,
+    marginTop: 12,
   },
   tagline: {
-    fontSize: 12,
-    lineHeight: 18,
-    marginTop: 8,
+    fontSize: 15,
+    lineHeight: 22,
+    marginTop: 12,
   },
 });

@@ -18,7 +18,7 @@ export async function migrate(database: SqlDatabase, at: string) {
     const categoryId = async (name: string, type: TransactionType) => {
       ensure(type === 'income' || type === 'expense', 'Tipo legado inválido.', 'STORAGE_ERROR');
       const normalized = normalizeName(text(name));
-      await connection.run('INSERT OR IGNORE INTO categories(name,normalizedName,type,icon,color,createdAt,updatedAt) VALUES(?,?,?,?,?,?,?)', [text(name), normalized, type, '📦', '#10B981', at, at]);
+      await connection.run('INSERT OR IGNORE INTO categories(name,normalizedName,type,icon,color,createdAt,updatedAt) VALUES(?,?,?,?,?,?,?)', [text(name), normalized, type, '\u{1F4E6}', '#10B981', at, at]);
       return (await connection.all<{ id: number }>('SELECT id FROM categories WHERE normalizedName=? AND type=?', [normalized, type]))[0].id;
     };
     if (legacy.includes('profile')) {

@@ -12,7 +12,7 @@ async function legacyDatabase() {
   await db.run('INSERT INTO transactions(id,description,category,type,amount,date,observation,favorite) VALUES(?,?,?,?,?,?,?,?)', [7, 'Salário', 'Outros', 'income', 1000.1, '2025-03-01', 'legado', 1]);
   await db.run('INSERT INTO transactions(id,description,category,type,amount,date,observation,favorite) VALUES(?,?,?,?,?,?,?,?)', [8, 'Compra', 'Outros', 'expense', 25.55, '2025-03-02', null, 0]);
   await db.run('INSERT INTO budgets(id,category,monthly_limit) VALUES(?,?,?)', [4, 'Outros', 300]);
-  await db.run('INSERT INTO goals(id,name,target_amount,saved_amount,deadline,icon) VALUES(?,?,?,?,?,?)', [3, 'Viagem', 2000, 200, null, '🎯']);
+  await db.run('INSERT INTO goals(id,name,target_amount,saved_amount,deadline,icon) VALUES(?,?,?,?,?,?)', [3, 'Viagem', 2000, 200, null, String.fromCodePoint(0x1f3af)]);
   return db;
 }
 

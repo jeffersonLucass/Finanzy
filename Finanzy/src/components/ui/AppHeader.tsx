@@ -8,15 +8,10 @@ export function AppHeader({ title, subtitle, back = false, actionLabel, onAction
   const { theme } = useTheme();
   return (
     <View style={styles.row}>
-      {back ? (
-        <Pressable accessibilityLabel="Voltar" accessibilityRole="button" hitSlop={8} onPress={() => router.back()} style={[styles.back, { backgroundColor: theme.colors.primarySoft }]}>
-          <Text style={[styles.backText, { color: theme.colors.primaryStrong }]}>‹</Text>
-        </Pressable>
-      ) : null}
-      <View style={styles.copy}>
+      <Pressable accessibilityLabel={back ? `Voltar, ${title}` : undefined} accessibilityRole={back ? 'button' : undefined} disabled={!back} onPress={() => { if (router.canGoBack()) router.back(); else router.replace('/more'); }} style={styles.copy}>
         <Text accessibilityRole="header" style={[styles.title, { color: theme.colors.text }]}>{title}</Text>
         {subtitle ? <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>{subtitle}</Text> : null}
-      </View>
+      </Pressable>
       {actionLabel && onAction ? (
         <Pressable accessibilityRole="button" onPress={onAction} style={[styles.action, { backgroundColor: theme.colors.primary }]}>
           <Text style={[styles.actionText, { color: theme.colors.onPrimary }]}>{actionLabel}</Text>
@@ -27,12 +22,10 @@ export function AppHeader({ title, subtitle, back = false, actionLabel, onAction
 }
 
 const styles = StyleSheet.create({
-  row: { alignItems: 'center', flexDirection: 'row', marginBottom: 20, minHeight: 48 },
-  back: { alignItems: 'center', borderRadius: 20, height: 40, justifyContent: 'center', marginRight: 12, width: 40 },
-  backText: { fontSize: 30, lineHeight: 32, marginTop: -3 },
+  row: { alignItems: 'flex-start', flexDirection: 'row', marginBottom: 28, minHeight: 38, paddingTop: 0, gap: 10 },
   copy: { flex: 1 },
-  title: { fontSize: 24, fontWeight: '700' },
-  subtitle: { fontSize: 13, marginTop: 4 },
-  action: { borderRadius: 18, paddingHorizontal: 15, paddingVertical: 10 },
+  title: { fontSize: 22, fontWeight: '700', lineHeight: 28 },
+  subtitle: { fontSize: 12, marginTop: 4 },
+  action: { borderRadius: 18, paddingHorizontal: 13, paddingVertical: 9 },
   actionText: { fontSize: 13, fontWeight: '700' },
 });

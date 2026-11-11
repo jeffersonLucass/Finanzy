@@ -8,12 +8,15 @@ import { EmptyState, ErrorState, LoadingState } from '../../components/ui/AsyncS
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { FormField } from '../../components/ui/FormField';
+import { SelectField } from '../../components/ui/SelectField';
+import { Icon } from '../../components/ui/Icon';
 import { errorMessage, parseMoney } from '../../domain/core';
 import { useAsyncAction } from '../../hooks/use-async-action';
 import { formatCurrency } from '../../presentation/format';
 import { useTheme } from '../../theme/ThemeProvider';
 import { useCategories } from '../categories/use-categories';
 import { useBudgets } from './use-budgets';
+import { validInput } from '../../presentation/input';
 
 export function BudgetsScreen() {
   const { theme } = useTheme();
@@ -22,11 +25,12 @@ export function BudgetsScreen() {
   const action = useAsyncAction(remove, query.reload);
   const confirm = (id: number) => Alert.alert('Excluir orçamento?', 'O limite será removido, mas as movimentações serão preservadas.', [{ text: 'Cancelar', style: 'cancel' }, { text: 'Excluir', style: 'destructive', onPress: () => void action.execute(id).catch(() => undefined) }]);
   return (
-    <AppScreen>
-      <AppHeader actionLabel="+ Novo" back onAction={() => router.push('/budgets/new')} title="Orçamentos" subtitle="Limites mensais por categoria" />
+    <AppScreen action={<Button label="+ Novo orçamento" onPress={() => router.push('/budgets/new')} />}>
+      <AppHeader back title="Orçamentos" />
       {query.loading && !query.data ? <LoadingState /> : query.error || !query.data ? <ErrorState error={query.error} onRetry={query.reload} /> : <>
-        <Card style={styles.summary}><Text style={[styles.summaryLabel, { color: theme.colors.textSecondary }]}>Limite total</Text><Text style={[styles.summaryValue, { color: theme.colors.text }]}>{formatCurrency(query.data.limitCents)}</Text><Text style={[styles.summaryLabel, { color: theme.colors.textSecondary }]}>Gasto {formatCurrency(query.data.spentCents)} · Sem orçamento {formatCurrency(query.data.unbudgetedCents)}</Text></Card>
-        {query.data.items.length ? query.data.items.map(item => <Card key={item.id} style={styles.card}><Pressable accessibilityRole="button" onPress={() => router.push({ pathname: '/budgets/new', params: { id: item.id } })}><View style={styles.row}><Text style={styles.icon}>{item.category.icon}</Text><View style={styles.copy}><Text style={[styles.name, { color: theme.colors.text }]}>{item.category.name}</Text><Text style={[styles.meta, { color: theme.colors.textSecondary }]}>{formatCurrency(item.spentCents)} de {formatCurrency(item.limitCents)}</Text></View><Text style={[styles.percent, { color: item.status === 'exceeded' ? theme.colors.danger : item.status === 'warning' ? theme.colors.warning : theme.colors.primaryStrong }]}>{item.percent.toFixed(0)}%</Text></View><View style={[styles.track, { backgroundColor: theme.colors.border }]}><View style={[styles.fill, { backgroundColor: item.status === 'exceeded' ? theme.colors.danger : item.status === 'warning' ? theme.colors.warning : theme.colors.primary, width: `${Math.min(item.percent, 100)}%` }]} /></View></Pressable><Button label="Excluir" loading={action.loading} onPress={() => confirm(item.id)} variant="ghost" /></Card>) : <EmptyState actionLabel="Criar orçamento" onAction={() => router.push('/budgets/new')} text="Defina limites para acompanhar seus gastos." title="Nenhum orçamento" />}
+        <Card style={styles.summary}><View style={styles.totals}><View style={styles.total}><Text style={[styles.summaryLabel, { color: theme.colors.textSecondary }]}>Limite</Text><Text style={[styles.summaryValue, { color: theme.colors.text }]}>{formatCurrency(query.data.limitCents)}</Text></View><View style={styles.total}><Text style={[styles.summaryLabel, { color: theme.colors.textSecondary }]}>Gasto</Text><Text style={[styles.summaryValue, { color: theme.colors.danger }]}>{formatCurrency(query.data.spentCents)}</Text></View><View style={styles.total}><Text style={[styles.summaryLabel, { color: theme.colors.textSecondary }]}>Disponível</Text><Text style={[styles.summaryValue, { color: theme.colors.primaryStrong }]}>{formatCurrency(query.data.limitCents - query.data.spentCents)}</Text></View></View><View style={[styles.track, { backgroundColor: theme.colors.chip }]}><View style={[styles.fill, { backgroundColor: theme.colors.primary, width: `${query.data.limitCents ? Math.min(query.data.spentCents / query.data.limitCents * 100, 100) : 0}%` }]} /></View></Card>
+        <Text style={[styles.label, { color: theme.colors.text }]}>Por categoria</Text>
+        {query.data.items.length ? query.data.items.map(item => <Card key={item.id} style={styles.card}><Pressable accessibilityRole="button" onPress={() => router.push({ pathname: '/budgets/new', params: { id: item.id } })}><View style={styles.row}><Icon name={item.category.icon} size={22} /><View style={styles.copy}><Text style={[styles.name, { color: theme.colors.text }]}>{item.category.name}</Text><Text style={[styles.meta, { color: theme.colors.textSecondary }]}>{formatCurrency(item.spentCents)} de {formatCurrency(item.limitCents)}</Text></View><Text style={[styles.percent, { color: item.status === 'exceeded' ? theme.colors.danger : item.status === 'warning' ? theme.colors.warning : theme.colors.primaryStrong }]}>{item.percent.toFixed(0)}%</Text></View><View style={[styles.track, { backgroundColor: theme.colors.border }]}><View style={[styles.fill, { backgroundColor: item.status === 'exceeded' ? theme.colors.danger : item.status === 'warning' ? theme.colors.warning : theme.colors.primary, width: `${Math.min(item.percent, 100)}%` }]} /></View></Pressable><Button label="Excluir" loading={action.loading} onPress={() => confirm(item.id)} variant="ghost" /></Card>) : <EmptyState actionLabel="Criar orçamento" onAction={() => router.push('/budgets/new')} text="Defina limites para acompanhar seus gastos." title="Nenhum orçamento" />}
       </>}
     </AppScreen>
   );
@@ -49,13 +53,11 @@ function BudgetFormContent({ id, initialCategoryId, initialLimitCents, categorie
   const save = useCallback(() => getRuntime().then(runtime => runtime.budgets.save(categoryId ?? 0, parseMoney(limit), id)), [categoryId, id, limit]);
   const action = useAsyncAction(save, () => router.replace('/budgets'));
   return (
-    <AppScreen>
+    <AppScreen action={<Button disabled={categoryId === null || !validInput(limit, { kind: 'money', required: true })} label={id ? 'Salvar alterações' : 'Criar orçamento'} loading={action.loading} onPress={() => void action.execute().catch(error => setFeedback(errorMessage(error)))} />}>
       <AppHeader back title={id ? 'Editar orçamento' : 'Novo orçamento'} />
-      <Text style={[styles.label, { color: theme.colors.textSecondary }]}>Categoria de despesa</Text>
-      <View style={styles.chips}>{categories.map(category => { const selected = category.id === categoryId; const used = !id && usedCategoryIds.includes(category.id); return <Pressable disabled={used} key={category.id} onPress={() => setCategoryId(category.id)}><Text style={[styles.chip, { backgroundColor: selected ? theme.colors.primary : theme.colors.surface, color: selected ? theme.colors.onPrimary : theme.colors.textSecondary, opacity: used ? 0.4 : 1 }]}>{category.icon} {category.name}</Text></Pressable>; })}</View>
-      <FormField keyboardType="decimal-pad" label="Limite mensal" onChangeText={setLimit} placeholder="0,00" value={limit} />
+      <SelectField label="Categoria" onChange={value => setCategoryId(Number(value))} options={categories.filter(category => category.id === initialCategoryId || !usedCategoryIds.includes(category.id)).map(category => ({ value: String(category.id), label: category.name, icon: category.icon }))} value={categoryId ? String(categoryId) : undefined} />
+      <FormField inputKind="money" label="Limite mensal" onChangeText={setLimit} placeholder="0,00" required value={limit} />
       {feedback || action.error ? <Text style={[styles.error, { color: theme.colors.dangerStrong }]}>{feedback || errorMessage(action.error)}</Text> : null}
-      <Button label="Salvar orçamento" loading={action.loading} onPress={() => void action.execute().catch(error => setFeedback(errorMessage(error)))} />
     </AppScreen>
   );
 }
@@ -63,7 +65,9 @@ function BudgetFormContent({ id, initialCategoryId, initialLimitCents, categorie
 const styles = StyleSheet.create({
   summary: { marginBottom: 16 },
   summaryLabel: { fontSize: 12, marginTop: 4 },
-  summaryValue: { fontSize: 27, fontWeight: '700', marginVertical: 5 },
+  summaryValue: { fontSize: 13, fontWeight: '700', marginVertical: 5 },
+  totals: { flexDirection: 'row', gap: 10 },
+  total: { flex: 1 },
   card: { marginBottom: 10 },
   row: { alignItems: 'center', flexDirection: 'row' },
   icon: { fontSize: 22 },

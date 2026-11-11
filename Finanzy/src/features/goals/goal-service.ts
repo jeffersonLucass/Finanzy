@@ -1,5 +1,6 @@
 import { dateOnly, ensure, money, sum, text } from '../../domain/core';
 import { GoalInput } from '../../domain/models';
+import { normalizeIcon } from '../../domain/icons';
 import { FinanceContext, balances, loadSnapshot } from '../../application/finance-context';
 
 export class GoalService {
@@ -7,7 +8,7 @@ export class GoalService {
   private validate(input: GoalInput) {
     money(input.targetCents);
     if (input.deadline) dateOnly(input.deadline);
-    return { name: text(input.name), targetCents: input.targetCents, deadline: input.deadline || null, icon: input.icon ? text(input.icon, 'Ícone', 40) : null };
+    return { name: text(input.name), targetCents: input.targetCents, deadline: input.deadline || null, icon: normalizeIcon(input.icon, 'target') };
   }
   async create(input: GoalInput, savedCents: number, key: string) {
     const valid = this.validate(input);

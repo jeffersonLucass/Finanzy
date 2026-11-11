@@ -8,6 +8,7 @@ export function formatBrazilianDateInput(value: string) {
 export function isValidBrazilianDate(value: string) {
   if (!/^\d{2}\/\d{2}\/\d{4}$/.test(value)) return false;
   const [day, month, year] = value.split('/').map(Number);
+  if (year < 1900 || year > 2199) return false;
   const date = new Date(year, month - 1, day);
   return date.getFullYear() === year &&
     date.getMonth() === month - 1 &&

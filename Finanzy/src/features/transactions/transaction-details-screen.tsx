@@ -1,3 +1,4 @@
+import { Icon } from '../../components/ui/Icon';
 import { router } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Alert, StyleSheet, Text, View } from 'react-native';
@@ -27,23 +28,19 @@ export function TransactionDetailsScreen({ id }: { id: number }) {
   const item = query.data;
   const confirmRemove = () => Alert.alert('Excluir movimentação?', item.occurrenceId ? 'O pagamento vinculado voltará a ficar pendente.' : 'Esta ação não pode ser desfeita.', [{ text: 'Cancelar', style: 'cancel' }, { text: 'Excluir', style: 'destructive', onPress: () => void removeAction.execute().catch(error => setFeedback(errorMessage(error))) }]);
   return (
-    <AppScreen>
-      <AppHeader back title="Detalhes" />
-      <Card style={styles.hero}>
-        <Text style={styles.icon}>{item.categoryIcon}</Text>
-        <Text style={[styles.kind, { color: theme.colors.textSecondary }]}>{item.type === 'income' ? 'Receita' : 'Despesa'}</Text>
+    <AppScreen action={<Button label="Excluir movimentação" loading={removeAction.loading} onPress={confirmRemove} variant="destructive" />}>
+      <AppHeader back title={item.description} />
+      <Card style={[styles.hero, { backgroundColor: item.type === 'income' ? theme.colors.primarySoft : theme.colors.dangerSoft }]}>
+        <Icon name={item.categoryIcon} size={32} />
         <Text style={[styles.amount, { color: item.type === 'income' ? theme.colors.primaryStrong : theme.colors.danger }]}>{item.type === 'income' ? '+ ' : '- '}{formatCurrency(item.amountCents)}</Text>
-        <Text style={[styles.name, { color: theme.colors.text }]}>{item.description}</Text>
       </Card>
-      <Card style={styles.details}>
+      <View style={styles.details}>
+        <Detail label="Tipo" value={item.type === 'income' ? 'Receita' : 'Despesa'} />
         <Detail label="Categoria" value={item.categoryName} />
         <Detail label="Data" value={toBrazilianDate(item.date)} />
         <Detail label="Observação" value={item.observation || 'Sem observação'} />
-        <Detail label="Favorito" value={item.isFavorite ? 'Sim' : 'Não'} />
-      </Card>
-      <View style={styles.actions}><Button disabled={Boolean(item.occurrenceId)} label="Editar" onPress={() => router.push(`/transactions/${id}/edit`)} variant="secondary" /><Button label={item.isFavorite ? 'Remover favorito' : 'Favoritar'} loading={favoriteAction.loading} onPress={() => void favoriteAction.execute(!item.isFavorite).catch(error => setFeedback(errorMessage(error)))} variant="secondary" /></View>
-      <Button label="Duplicar como nova" onPress={() => router.push({ pathname: '/transactions/new', params: { duplicateId: id } })} variant="ghost" />
-      <Button label="Excluir movimentação" loading={removeAction.loading} onPress={confirmRemove} variant="danger" />
+      </View>
+      <View style={styles.actions}><Button compact disabled={Boolean(item.occurrenceId)} label="Editar" onPress={() => router.push(`/transactions/${id}/edit`)} /><Button compact label="Duplicar" onPress={() => router.push({ pathname: '/transactions/new', params: { duplicateId: id } })} variant="secondary" /><Button compact label={item.isFavorite ? 'Desfavoritar' : 'Favoritar'} loading={favoriteAction.loading} onPress={() => void favoriteAction.execute(!item.isFavorite).catch(error => setFeedback(errorMessage(error)))} variant="secondary" /></View>
       {feedback ? <Text style={[styles.feedback, { color: theme.colors.dangerStrong }]}>{feedback}</Text> : null}
     </AppScreen>
   );
@@ -51,19 +48,19 @@ export function TransactionDetailsScreen({ id }: { id: number }) {
 
 function Detail({ label, value }: { label: string; value: string }) {
   const { theme } = useTheme();
-  return <View style={styles.detailRow}><Text style={[styles.detailLabel, { color: theme.colors.textSecondary }]}>{label}</Text><Text style={[styles.detailValue, { color: theme.colors.text }]}>{value}</Text></View>;
+  const icons: Record<string, string> = { Tipo: 'arrow-down', Categoria: 'tags', Data: 'calendar', Observação: 'file-text' };
+  return <View style={styles.detailRow}><View style={[styles.detailIcon, { backgroundColor: theme.colors.primarySoft }]}><Icon name={icons[label]} size={18} /></View><View><Text style={[styles.detailLabel, { color: theme.colors.text }]}>{label}</Text><Text style={[styles.detailValue, { color: theme.colors.textSecondary }]}>{value}</Text></View></View>;
 }
 
 const styles = StyleSheet.create({
-  hero: { alignItems: 'center', marginBottom: 14 },
+  hero: { alignItems: 'flex-start', marginBottom: 10, padding: 18 },
   icon: { fontSize: 32 },
-  kind: { fontSize: 12, marginTop: 8 },
-  amount: { fontSize: 30, fontWeight: '700', marginTop: 5 },
-  name: { fontSize: 17, fontWeight: '700', marginTop: 8 },
+  amount: { fontSize: 28, fontWeight: '700', marginTop: 8 },
   details: { marginBottom: 14 },
-  detailRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 9 },
-  detailLabel: { fontSize: 13 },
-  detailValue: { flex: 1, fontSize: 13, fontWeight: '600', marginLeft: 16, textAlign: 'right' },
+  detailRow: { alignItems: 'center', flexDirection: 'row', gap: 10, paddingVertical: 10, minHeight: 62 },
+  detailIcon: { alignItems: 'center', borderRadius: 12, height: 36, justifyContent: 'center', width: 36 },
+  detailLabel: { fontSize: 13, fontWeight: '600' },
+  detailValue: { fontSize: 11, marginTop: 4 },
   actions: { flexDirection: 'row', gap: 10, marginBottom: 10 },
   feedback: { fontSize: 13, marginTop: 12, textAlign: 'center' },
 });

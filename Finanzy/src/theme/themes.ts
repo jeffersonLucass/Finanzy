@@ -3,16 +3,17 @@ import { AppTheme, fontSize, radius, spacing } from './tokens';
 export const lightTheme: AppTheme = {
   dark: false,
   colors: {
-    canvas: '#F7F9FC',
+    canvas: '#F8F9FB',
     surface: '#FFFFFF',
+    chip: '#F1F5F9',
     elevated: '#FFFFFF',
     text: '#111827',
     textSecondary: '#64748B',
     textMuted: '#94A3B8',
     border: '#E2E8F0',
-    primary: '#10B981',
+    primary: '#0FB880',
     primaryStrong: '#059669',
-    primarySoft: '#ECFDF5',
+    primarySoft: '#EBFDF4',
     onPrimary: '#FFFFFF',
     danger: '#EF4444',
     dangerStrong: '#DC2626',
@@ -34,6 +35,7 @@ export const darkTheme: AppTheme = {
   colors: {
     canvas: '#0F172A',
     surface: '#111827',
+    chip: '#1E293B',
     elevated: '#1E293B',
     text: '#F8FAFC',
     textSecondary: '#CBD5E1',

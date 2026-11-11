@@ -1,11 +1,11 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { useTheme } from '../theme/ThemeProvider';
 
-export function BrandMark() {
+export function BrandMark({ large = false }: { large?: boolean }) {
   const { theme } = useTheme();
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.primary }]} accessible={false}>
-      <Text style={[styles.letter, { color: theme.colors.onPrimary }]}>F</Text>
+    <View style={[styles.container, large && styles.large, { backgroundColor: theme.colors.primary }]} accessible={false}>
+      <Text style={[styles.letter, large && styles.largeLetter, { color: theme.colors.onPrimary }]}>F</Text>
     </View>
   );
 }
@@ -23,4 +23,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     lineHeight: 46,
   },
+  large: { borderRadius: 28, height: 96, width: 96 },
+  largeLetter: { fontSize: 48, lineHeight: 58 },
 });
