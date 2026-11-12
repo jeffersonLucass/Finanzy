@@ -16,17 +16,6 @@ function monthly(snapshot: Snapshot, period: string, settings: Settings, asOfDat
   }).filter(c => c.totalCents > 0).sort((a,b) => b.totalCents - a.totalCents || a.category.id - b.category.id);
   return { period, start, end, incomeCents, expenseCents, balanceCents: sum([incomeCents, -expenseCents]), transactions, scheduled: periodRows.filter(t => t.date > asOfDate), categories, allCategories: snapshot.categories };
 }
-function forecast(snapshot: Snapshot, startMonth: string, months: number) {
-  monthOnly(startMonth); ensure(Number.isInteger(months) && months >= 1 && months <= 12, 'Informe de 1 a 12 meses.');
-  const all = projectOccurrences(snapshot, startMonth, shiftMonth(startMonth, months));
-  return Array.from({ length: months }, (_, offset) => {
-    const month = shiftMonth(startMonth, offset);
-    const items = all.filter(o => o.referenceMonth === month && o.status === 'pending');
-    const subscriptionsCents = sum(items.filter(o => snapshot.recurring.find(r => r.id === o.recurringExpenseId)?.kind === 'subscription').map(o => o.amountCents));
-    const installmentsCents = sum(items.filter(o => snapshot.recurring.find(r => r.id === o.recurringExpenseId)?.kind === 'installment').map(o => o.amountCents));
-    return { month, items, subscriptionsCents, installmentsCents, totalCents: sum([subscriptionsCents, installmentsCents]) };
-  });
-}
 export class ReportsService {
   constructor(private readonly finance: FinanceContext) {}
   async getMonthlyReport(period: string) { const ctx = await this.finance.context(); return monthly(await this.finance.snapshot(), period, ctx.settings, ctx.date); }
@@ -44,9 +33,8 @@ export class ReportsService {
   async getMonthlySummary(period: string) {
     const ctx = await this.finance.context(); const snapshot = await this.finance.snapshot(); const report = monthly(snapshot, period, ctx.settings, ctx.date);
     const biggest = report.transactions.filter(t => t.type === 'expense').sort((a,b) => b.amountCents - a.amountCents || a.id - b.id)[0] ?? null;
-    return { ...report, savedCents: report.balanceCents, biggestExpense: biggest, topCategory: report.categories[0] ?? null, transactionCount: report.transactions.length, nextMonth: forecast(snapshot, shiftMonth(period,1), 1)[0] };
+    return { ...report, savedCents: report.balanceCents, biggestExpense: biggest, topCategory: report.categories[0] ?? null, transactionCount: report.transactions.length };
   }
-  async getForecast(startMonth: string, months = 3) { return forecast(await this.finance.snapshot(), startMonth, months); }
   async getCalendar(month: string) {
     monthOnly(month); const snapshot = await this.finance.snapshot();
     const occurrences = projectOccurrences(snapshot, month, shiftMonth(month,1));
