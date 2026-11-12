@@ -30,8 +30,8 @@ export function RecurringListScreen() {
   const load = useCallback(() => getRuntime().then(runtime => runtime.recurring.list()), []);
   const query = useAsyncQuery(load);
   return (
-    <AppScreen action={<Button label="+ Novo gasto mensal" onPress={() => router.push('/recurring/new')} />}>
-      <AppHeader back title="Gastos mensais" />
+    <AppScreen>
+      <AppHeader back title="Gastos mensais" actionLabel="+ Adicionar" onAction={() => router.push('/recurring/new')} />
       <SegmentedControl onChange={setKind} options={[{ value: 'subscription', label: 'Mensalidades' }, { value: 'installment', label: 'Parcelamentos' }]} value={kind} />
       {query.loading && !query.data ? <LoadingState /> : query.error ? <ErrorState error={query.error} onRetry={query.reload} /> : query.data?.some(item => item.kind === kind) ? query.data.filter(item => item.kind === kind).map(item => <Pressable accessibilityRole="button" key={item.id} onPress={() => router.push(item.kind === 'subscription' ? `/recurring/subscriptions/${item.id}` : `/recurring/installments/${item.id}`)}><View style={styles.listCard}><View style={[styles.kindIcon, { backgroundColor: theme.colors.primarySoft }]}><Text>{item.kind === 'subscription' ? '↻' : '▤'}</Text></View><View style={styles.copy}><Text style={[styles.name, { color: theme.colors.text }]}>{item.name}</Text><Text style={[styles.meta, { color: theme.colors.textSecondary }]}>Dia {item.dueDay} · {item.cancelledFromMonth ? 'Cancelado' : 'Ativo'}{item.installmentCount ? ` · ${item.installmentCount} parcelas` : ''}</Text></View><Text style={[styles.value, { color: theme.colors.text }]}>{formatCurrency(item.amountCents)}{kind === 'subscription' ? '/mês' : ''}</Text></View></Pressable>) : <EmptyState text="Cadastre mensalidades e parcelamentos para acompanhar vencimentos." title="Nenhum gasto mensal" />}
     </AppScreen>
