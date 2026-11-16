@@ -55,9 +55,6 @@ test('paga e desfaz parcela atomicamente sem duplicar despesa', async () => {
   assert.equal((await reports.getDashboard()).accountingCents, -35000);
   await recurring.undoPayment(occurrence.id, 'undo-1');
   assert.equal((await reports.getDashboard()).accountingCents, 0);
-  const forecast = await reports.getForecast('2025-03', 3);
-  assert.equal(forecast[0].totalCents, 35000);
-  assert.equal(forecast[1].totalCents, 35000);
 });
 
 test('filtros calculam total completo independentemente da página', async () => {

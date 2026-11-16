@@ -1,18 +1,17 @@
-import { Icon } from '../components/ui/Icon';
+import { Icon } from '../../components/ui/Icon';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { getRuntime } from '../application/runtime';
-import { BottomNav } from '../components/BottomNav';
-import { TransactionRow } from '../components/TransactionRow';
-import { AppScreen } from '../components/ui/AppScreen';
-import { ErrorState, LoadingState } from '../components/ui/AsyncState';
-import { Button } from '../components/ui/Button';
-import { Card } from '../components/ui/Card';
-import { useDashboard } from '../features/dashboard/use-dashboard';
-import { Notice } from '../features/notifications/notification-service';
-import { formatCurrency } from '../presentation/format';
-import { useTheme } from '../theme/ThemeProvider';
+import { getRuntime } from '../../application/runtime';
+import { TransactionRow } from '../../components/TransactionRow';
+import { AppScreen } from '../../components/ui/AppScreen';
+import { ErrorState, LoadingState } from '../../components/ui/AsyncState';
+import { Button } from '../../components/ui/Button';
+import { Card } from '../../components/ui/Card';
+import { useDashboard } from '../../features/dashboard/use-dashboard';
+import { Notice } from '../../features/notifications/notification-service';
+import { formatCurrency } from '../../presentation/format';
+import { useTheme } from '../../theme/ThemeProvider';
 
 export default function HomeScreen() {
   const { theme } = useTheme();
@@ -29,10 +28,10 @@ export default function HomeScreen() {
   const budgetProgress = budgetLimit ? Math.min(budgetSpent / budgetLimit * 100, 100) : 0;
   const goal = dashboard?.goal;
   const goalProgress = goal ? Math.min(goal.savedCents / goal.targetCents * 100, 100) : 0;
-  if (query.loading && !dashboard) return <AppScreen footer={<BottomNav active="home" />}><LoadingState /></AppScreen>;
-  if (query.error || !dashboard) return <AppScreen footer={<BottomNav active="home" />}><ErrorState error={query.error} onRetry={query.reload} /></AppScreen>;
+  if (query.loading && !dashboard) return <AppScreen><LoadingState /></AppScreen>;
+  if (query.error || !dashboard) return <AppScreen><ErrorState error={query.error} onRetry={query.reload} /></AppScreen>;
   return (
-    <AppScreen footer={<BottomNav active="home" />}>
+    <AppScreen>
       <View style={styles.top}><View style={styles.copy}><Text style={[styles.greeting, { color: theme.colors.text }]}>Olá, {dashboard.profile?.name || 'Usuário'}</Text><Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>Veja como estão suas finanças</Text></View></View>
       {notice ? <Pressable accessibilityRole="button" onPress={() => { if (notice.destination.screen === 'budgets') router.push('/budgets'); else router.push(`/occurrences/${notice.destination.id}`); setNotice(null); }}><Card style={[styles.notice, { backgroundColor: theme.colors.warningSoft }]}><Text style={[styles.noticeTitle, { color: theme.colors.warning }]}>{notice.title}</Text><Text style={[styles.noticeBody, { color: theme.colors.textSecondary }]}>{notice.body}</Text></Card></Pressable> : null}
       <Card style={[styles.balanceCard, { backgroundColor: dashboard.availableCents < 0 ? theme.colors.danger : theme.colors.primary }]}>
@@ -47,7 +46,21 @@ export default function HomeScreen() {
       <Section title="Últimas transações" onPress={() => router.push('/transactions')} />
       {dashboard.latest.length ? dashboard.latest.map(item => <TransactionRow amountCents={item.amountCents} category={item.categoryName} date={item.date} description={item.description} icon={item.categoryIcon} key={item.id} onPress={() => router.push(`/transactions/${item.id}`)} type={item.type} />) : <Card><Text style={[styles.emptyText, { color: theme.colors.textSecondary }]}>Nenhuma movimentação cadastrada.</Text><Button label="Adicionar movimentação" onPress={() => router.push('/transactions/new')} variant="ghost" /></Card>}
       <Section title="Meta financeira" onPress={() => router.push('/goals')} />
-      <Pressable accessibilityRole="button" onPress={() => router.push(goal ? `/goals/${goal.id}` : '/goals/new')}><Card>{goal ? <><View style={styles.goal}><View style={styles.goalIcon}><Icon name={goal.icon || 'target'} size={23} /></View><View style={styles.copy}><Text style={[styles.cardTitle, { color: theme.colors.text }]}>{goal.name}</Text><Text style={[styles.meta, { color: theme.colors.textSecondary }]}>{formatCurrency(goal.savedCents)} de {formatCurrency(goal.targetCents)}</Text></View><Text style={[styles.percent, { color: theme.colors.primaryStrong }]}>{goalProgress.toFixed(0)}%</Text></View><Progress value={goalProgress} /></> : <><Text style={[styles.cardTitle, { color: theme.colors.text }]}>Comece uma nova meta</Text><Text style={[styles.meta, { color: theme.colors.textSecondary }]}>Guarde dinheiro aos poucos para seus objetivos.</Text></>}</Card></Pressable>
+      {goal ? (
+        <Pressable accessibilityRole="button" onPress={() => router.push(`/goals/${goal.id}`)}>
+          <Card>
+            <View style={styles.goal}><View style={styles.goalIcon}><Icon name={goal.icon || 'target'} size={23} /></View><View style={styles.copy}><Text style={[styles.cardTitle, { color: theme.colors.text }]}>{goal.name}</Text><Text style={[styles.meta, { color: theme.colors.textSecondary }]}>{formatCurrency(goal.savedCents)} de {formatCurrency(goal.targetCents)}</Text></View><Text style={[styles.percent, { color: theme.colors.primaryStrong }]}>{goalProgress.toFixed(0)}%</Text></View>
+            <Progress value={goalProgress} />
+            <Text style={[styles.goalHint, { color: theme.colors.textSecondary }]}>Toque para ver os detalhes ou adicionar dinheiro.</Text>
+          </Card>
+        </Pressable>
+      ) : (
+        <Card>
+          <Text style={[styles.cardTitle, { color: theme.colors.text }]}>Ainda não há uma meta ativa</Text>
+          <Text style={[styles.meta, { color: theme.colors.textSecondary }]}>Defina um objetivo e um valor para acompanhar seu progresso.</Text>
+          <Button label="+ Criar minha primeira meta" onPress={() => router.push('/goals/new')} variant="ghost" />
+        </Card>
+      )}
     </AppScreen>
   );
 }
@@ -89,4 +102,5 @@ const styles = StyleSheet.create({
   cardTitle: { fontSize: 16, fontWeight: '600' },
   goal: { alignItems: 'center', flexDirection: 'row' },
   goalIcon: { fontSize: 23, marginRight: 12 },
+  goalHint: { fontSize: 12, marginTop: 10 },
 });

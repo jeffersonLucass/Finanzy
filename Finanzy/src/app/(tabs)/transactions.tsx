@@ -1,18 +1,17 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { SectionList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import { BottomNav } from '../components/BottomNav';
-import { TransactionRow } from '../components/TransactionRow';
-import { AppScreen } from '../components/ui/AppScreen';
-import { Button } from '../components/ui/Button';
-import { EmptyState, ErrorState, LoadingState } from '../components/ui/AsyncState';
-import { TransactionFilters } from '../domain/models';
-import { addDays } from '../domain/core';
-import { todayLocal, toBrazilianDate } from '../presentation/date';
-import { useTransactions } from '../features/transactions/use-transactions';
-import { formatCurrency } from '../presentation/format';
-import { useTheme } from '../theme/ThemeProvider';
-import { inputLimits, sanitizeInput } from '../presentation/input';
+import { TransactionRow } from '../../components/TransactionRow';
+import { AppScreen } from '../../components/ui/AppScreen';
+import { Button } from '../../components/ui/Button';
+import { EmptyState, ErrorState, LoadingState } from '../../components/ui/AsyncState';
+import { TransactionFilters } from '../../domain/models';
+import { addDays } from '../../domain/core';
+import { todayLocal, toBrazilianDate } from '../../presentation/date';
+import { useTransactions } from '../../features/transactions/use-transactions';
+import { formatCurrency } from '../../presentation/format';
+import { useTheme } from '../../theme/ThemeProvider';
+import { inputLimits, sanitizeInput } from '../../presentation/input';
 
 export default function TransactionsScreen() {
   const { theme } = useTheme();
@@ -43,7 +42,7 @@ export default function TransactionsScreen() {
   const activeFilters = Number(Boolean(params.categories)) + Number(Boolean(params.start || params.end)) + Number(params.favorites === '1');
 
   return (
-    <AppScreen footer={<BottomNav active="transactions" />} scroll={false}>
+    <AppScreen scroll={false}>
       <View style={styles.header}>
         <View style={styles.copy}>
           <Text style={[styles.title, { color: theme.colors.text }]}>Transações</Text>

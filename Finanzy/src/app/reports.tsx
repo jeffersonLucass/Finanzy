@@ -1,7 +1,6 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { BottomNav } from '../components/BottomNav';
 import { AppScreen } from '../components/ui/AppScreen';
 import { EmptyState, ErrorState, LoadingState } from '../components/ui/AsyncState';
 import { Button } from '../components/ui/Button';
@@ -22,7 +21,7 @@ export default function ReportsScreen() {
   const report = query.data?.monthly;
   const chartCategories = report?.categories.map(item => ({ id: item.category.id, name: item.category.name, amountCents: item.totalCents, color: categoryChartColor(item.category.id, theme.dark) })) ?? [];
   return (
-    <AppScreen footer={<BottomNav active="reports" />}>
+    <AppScreen>
       <View style={styles.header}><View style={styles.copy}><Text style={[styles.title, { color: theme.colors.text }]}>Relatórios</Text><View style={styles.month}><Pressable accessibilityLabel="Mês anterior" accessibilityRole="button" hitSlop={8} onPress={() => setPeriod(value => shiftMonth(value, -1))}><Text style={{ color: theme.colors.textSecondary }}>‹</Text></Pressable><Text style={[styles.monthText, { color: theme.colors.textSecondary }]}>{monthLabel(period)}</Text><Pressable accessibilityLabel="Próximo mês" accessibilityRole="button" hitSlop={8} onPress={() => setPeriod(value => shiftMonth(value, 1))}><Text style={{ color: theme.colors.textSecondary }}>›</Text></Pressable></View></View><Button compact label="Comparação mensal" onPress={() => router.push({ pathname: '/reports/comparison', params: { period } })} /></View>
       {query.loading && !report ? <LoadingState /> : query.error || !report ? <ErrorState error={query.error} onRetry={query.reload} /> : <>
         <View style={styles.summary}><Summary label="Receitas" value={formatCurrency(report.incomeCents)} tone="income" /><Summary label="Despesas" value={formatCurrency(report.expenseCents)} tone="expense" /><Summary label="Saldo" value={formatCurrency(report.balanceCents)} tone="neutral" /></View>

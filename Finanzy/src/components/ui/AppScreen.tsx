@@ -1,16 +1,12 @@
 import { PropsWithChildren, ReactNode } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
-import { usePathname } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../../theme/ThemeProvider';
-import { BottomNav } from '../BottomNav';
 
-type AppScreenProps = PropsWithChildren<{ footer?: ReactNode; scroll?: boolean; action?: ReactNode }>;
+type AppScreenProps = PropsWithChildren<{ scroll?: boolean; action?: ReactNode }>;
 
-export function AppScreen({ children, footer, action, scroll = true }: AppScreenProps) {
+export function AppScreen({ children, action, scroll = true }: AppScreenProps) {
   const { theme } = useTheme();
-  const path = usePathname();
-  const active = path === '/more' ? 'more' : path === '/transactions' ? 'transactions' : path.startsWith('/reports') ? 'reports' : 'home';
   const content = scroll ? (
     <ScrollView style={styles.scroll} contentContainerStyle={[styles.content, { paddingHorizontal: theme.spacing.xl, paddingTop: theme.spacing.lg, paddingBottom: theme.spacing.lg }]} keyboardShouldPersistTaps="handled">
       {children}
@@ -21,7 +17,6 @@ export function AppScreen({ children, footer, action, scroll = true }: AppScreen
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={[styles.viewport, { backgroundColor: theme.colors.canvas }]}>
         {content}
         {action ? <View style={styles.action}>{action}</View> : null}
-        {footer ?? <BottomNav active={active} />}
       </KeyboardAvoidingView>
     </SafeAreaView>
   );

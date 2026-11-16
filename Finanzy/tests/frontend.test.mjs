@@ -15,12 +15,12 @@ test('formata valores financeiros da apresentação em BRL', () => {
   assert.match(formatCurrency(-50), /0,50/);
 });
 
-test('expõe todas as rotas previstas pelas trinta telas do Figma', () => {
+test('expõe todas as rotas ativas do aplicativo', () => {
   const routes = [
     'src/app/index.tsx',
-    'src/app/home.tsx',
+    'src/app/(tabs)/home.tsx',
     'src/app/transactions/new.tsx',
-    'src/app/transactions.tsx',
+    'src/app/(tabs)/transactions.tsx',
     'src/app/transactions/filters.tsx',
     'src/app/transactions/[id].tsx',
     'src/app/transactions/[id]/edit.tsx',
@@ -32,22 +32,21 @@ test('expõe todas as rotas previstas pelas trinta telas do Figma', () => {
     'src/app/goals/new.tsx',
     'src/app/goals/[id].tsx',
     'src/app/goals/[id]/add.tsx',
-    'src/app/recurring.tsx',
+    'src/app/(tabs)/recurring.tsx',
     'src/app/recurring/new.tsx',
     'src/app/recurring/subscriptions/new.tsx',
     'src/app/recurring/installments/new.tsx',
     'src/app/recurring/subscriptions/[id].tsx',
     'src/app/recurring/installments/[id].tsx',
-    'src/app/forecast.tsx',
     'src/app/categories.tsx',
     'src/app/categories/new.tsx',
     'src/app/favorites.tsx',
     'src/app/calendar.tsx',
     'src/app/calendar/summary.tsx',
-    'src/app/more.tsx',
+    'src/app/(tabs)/more.tsx',
     'src/app/settings.tsx',
     'src/app/settings/export.tsx',
   ];
-  assert.equal(routes.length, 30);
+  assert.equal(routes.length, 29);
   for (const route of routes) assert.equal(existsSync(route), true, route);
 });

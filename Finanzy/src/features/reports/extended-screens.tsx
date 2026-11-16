@@ -7,7 +7,6 @@ import { AppScreen } from '../../components/ui/AppScreen';
 import { EmptyState, ErrorState, LoadingState } from '../../components/ui/AsyncState';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
-import { SegmentedControl } from '../../components/ui/SegmentedControl';
 import { SettingsRow } from '../../components/ui/SettingsRow';
 import { shiftMonth } from '../../domain/core';
 import { useAsyncQuery } from '../../hooks/use-async-query';
@@ -40,22 +39,6 @@ export function MonthlyComparisonScreen({ initialPeriod = currentMonth() }: { in
         </Card>
         <SettingsRow icon={query.data.topCategory?.category.icon ?? 'package'} label="Maior categoria" hint={query.data.topCategory?.category.name ?? 'Nenhuma despesa no período'} value={formatCurrency(query.data.topCategory?.totalCents ?? 0)} />
       </>}
-    </AppScreen>
-  );
-}
-
-export function ForecastScreen() {
-  const { theme } = useTheme();
-  const [start, setStart] = useState(currentMonth());
-  const [months, setMonths] = useState<'1' | '3' | '6' | '12'>('3');
-  const [showPeriod, setShowPeriod] = useState(false);
-  const load = useCallback(() => getRuntime().then(runtime => runtime.reports.getForecast(start, Number(months))), [months, start]);
-  const query = useAsyncQuery(load);
-  return (
-    <AppScreen>
-      <AppHeader back title="Previsão financeira" actionLabel="Período" onAction={() => setShowPeriod(value => !value)} />
-      {showPeriod ? <><MonthPicker month={start} onChange={setStart} /><SegmentedControl onChange={setMonths} options={[{ value: '1', label: '1 mês' }, { value: '3', label: '3 meses' }, { value: '6', label: '6 meses' }, { value: '12', label: '12 meses' }]} value={months} /></> : null}
-      {query.loading && !query.data ? <LoadingState /> : query.error ? <ErrorState error={query.error} onRetry={query.reload} /> : query.data?.length ? query.data.map(item => <Card key={item.month} style={styles.forecastCard}><Text style={[styles.forecastMonth, { color: theme.colors.text }]}>{new Date(`${item.month}-02T12:00:00`).toLocaleDateString('pt-BR', { month: 'long' })}</Text><View style={styles.forecastTotals}><View style={styles.forecastTotal}><Text style={[styles.summaryLabel, { color: theme.colors.textSecondary }]}>Mensalidades</Text><Text style={[styles.summaryValue, { color: theme.colors.text }]}>{formatCurrency(item.subscriptionsCents)}</Text></View><View style={styles.forecastTotal}><Text style={[styles.summaryLabel, { color: theme.colors.textSecondary }]}>Parcelamentos</Text><Text style={[styles.summaryValue, { color: theme.colors.text }]}>{formatCurrency(item.installmentsCents)}</Text></View><View style={styles.forecastTotal}><Text style={[styles.summaryLabel, { color: theme.colors.textSecondary }]}>Total</Text><Text style={[styles.summaryValue, { color: theme.colors.primaryStrong }]}>{formatCurrency(item.totalCents)}</Text></View></View></Card>) : <EmptyState text="Cadastre assinaturas ou parcelamentos para visualizar os próximos meses." title="Sem previsão" />}
     </AppScreen>
   );
 }
@@ -119,7 +102,6 @@ export function MonthlySummaryScreen({ period }: { period: string }) {
         <SettingsRow icon="house" label="Maior gasto" hint={query.data.biggestExpense?.description ?? 'Nenhuma despesa'} value={formatCurrency(query.data.biggestExpense?.amountCents ?? 0)} />
         <SettingsRow icon={query.data.topCategory?.category.icon ?? 'package'} label="Maior categoria" hint={query.data.topCategory?.category.name ?? 'Nenhuma'} value={formatCurrency(query.data.topCategory?.totalCents ?? 0)} />
         <SettingsRow icon="menu" label="Transações realizadas" hint={monthLabel(month)} value={String(query.data.transactionCount)} />
-        <SettingsRow icon="chart" label="Comprometido próximo mês" hint="Previsão" value={formatCurrency(query.data.nextMonth.totalCents)} />
       </>}
     </AppScreen>
   );
@@ -164,8 +146,4 @@ const styles = StyleSheet.create({
   summary: { minWidth: 0, minHeight: 72, flex: 1, padding: 10 },
   summaryLabel: { fontSize: 11 },
   summaryValue: { fontSize: 15, fontWeight: '700', marginTop: 6 },
-  forecastCard: { marginBottom: 10, minHeight: 130, padding: 14 },
-  forecastMonth: { fontSize: 16, fontWeight: '600', textTransform: 'capitalize' },
-  forecastTotals: { flexDirection: 'row', gap: 10, marginTop: 24, paddingHorizontal: 10 },
-  forecastTotal: { flex: 1, minWidth: 0 },
 });
